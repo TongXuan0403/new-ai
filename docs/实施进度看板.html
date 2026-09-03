@@ -82,13 +82,13 @@
     <div class="sub">面向 18 岁及以上大学生 · AI 心理支持与自助管理 · 不提供诊断 / 治疗 / 紧急救援</div>
     <div class="badges">
       <span class="badge live">● 实时追踪</span>
-      <span class="badge">数据源：docs 文档 + demo 源码 + Git 提交</span>
+      <span class="badge">数据源：docs 文档 + server/web 源码 + Git 提交 + 冒烟测试</span>
       <span class="badge" id="updatedAt">更新时间：--</span>
     </div>
   </header>
 
   <div class="card">
-    <h2>总体进度 <span class="tag">P0 已完成</span></h2>
+    <h2>总体进度 <span class="tag">P0 主体完成 · 待上线验收</span></h2>
     <div class="bar-row"><span class="label">产品设计文档</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="bar-row"><span class="label">技术方案</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="bar-row"><span class="label">静态 MVP 演示</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct">100%</span></div>
@@ -101,7 +101,7 @@
     <h2>功能模块实施状态</h2>
     <div class="grid">
       <div class="mod"><div class="mhead"><span class="mname">A 账号与同意</span><span class="ring">100%</span></div><div class="mdesc">注册登录退出、首次同意门、授权撤回、分权</div><div class="mbar"><i style="width:100%"></i></div><span class="st done">已联调通过</span></div>
-      <div class="mod"><div class="mhead"><span class="mname">B AI 对话与会话</span><span class="ring">95%</span></div><div class="mdesc">会话管理、流式回复、历史、反馈、标题</div><div class="mbar"><i style="width:95%"></i></div><span class="st done">SSE 已接通</span></div>
+      <div class="mod"><div class="mhead"><span class="mname">B AI 对话与会话</span><span class="ring">100%</span></div><div class="mdesc">会话管理、流式回复、历史、反馈、标题</div><div class="mbar"><i style="width:100%"></i></div><span class="st done">SSE 已接通并验证</span></div>
       <div class="mod"><div class="mhead"><span class="mname">C 情绪日记</span><span class="ring">100%</span></div><div class="mdesc">新增/编辑/删除、7/30 天趋势</div><div class="mbar"><i style="width:100%"></i></div><span class="st done">已联调通过</span></div>
       <div class="mod"><div class="mhead"><span class="mname">D 知识库</span><span class="ring">95%</span></div><div class="mdesc">分类、详情、审核、推荐、富文本安全</div><div class="mbar"><i style="width:95%"></i></div><span class="st done">已联调通过</span></div>
       <div class="mod"><div class="mhead"><span class="mname">E 管理后台</span><span class="ring">95%</span></div><div class="mdesc">概览、文章管理、风险事件、资源配置</div><div class="mbar"><i style="width:95%"></i></div><span class="st done">已联调通过</span></div>
@@ -157,12 +157,12 @@
   </div>
 
   <div class="grid">
-    <div class="milestone"><h3>P0 安全可试用 MVP <span class="st done">已完成</span></h3><ul>
+    <div class="milestone"><h3>P0 安全可试用 MVP <span class="st part">收尾中</span></h3><ul>
       <li class="done">产品设计文档</li><li class="done">技术方案</li><li class="done">静态 MVP 演示</li>
-      <li class="done">账号登录与首次同意（后端）</li><li class="done">AI 流式对话与风险服务</li><li class="done">日记 / 知识库 / 管理端接口</li><li class="done">测试与上线验收（冒烟 31/31）</li>
+      <li class="done">账号登录与首次同意（后端）</li><li class="done">AI 流式对话与风险服务</li><li class="done">日记 / 知识库 / 管理端接口</li><li class="done">测试与上线验收（冒烟 32/32，待安全回归与部署）</li>
     </ul></div>
-    <div class="milestone"><h3>P1 提高连续使用 <span class="st todo">未开始</span></h3><ul>
-      <li>对话帮助度反馈聚合</li><li>文章搜索、标签、收藏、推荐</li><li>日记编辑、删除、导出</li><li>自助练习库与完成记录</li><li>提示词 / 模型 / 规则版本化</li>
+    <div class="milestone"><h3>P1 提高连续使用 <span class="st part">部分完成</span></h3><ul>
+      <li class="done">对话帮助度反馈聚合</li><li>文章搜索、标签、收藏、推荐</li><li class="done">日记编辑、删除、导出</li><li>自助练习库与完成记录</li><li>提示词 / 模型 / 规则版本化</li>
     </ul></div>
     <div class="milestone"><h3>P2 验证后扩展 <span class="st todo">未开始</span></h3><ul>
       <li>学校心理中心预约 / 转介</li><li>经专业审核的成长计划</li><li>语音输入与无障碍</li><li>匿名聚合校园报告</li>
