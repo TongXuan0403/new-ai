@@ -18,7 +18,8 @@ spring:
           tool-calling:
             enabled: true
         completions-path: /v1/chat/completions
-      api-key: sk-REVOKED-REMOVED-FROM-HISTORY  
+      # API Key 从环境变量 AI_API_KEY 读取；未配置时使用占位值，AI 对话自动走本地兜底回复
+      api-key: ${AI_API_KEY:sk-no-key-configured}
       base-url: https://api.deepseek.com
     mcp:
       server:

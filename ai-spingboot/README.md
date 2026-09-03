@@ -55,17 +55,17 @@ mysql -uroot -p < sql/schema.sql
 | --- | --- | --- |
 | `spring.datasource.url` | `jdbc:mysql://localhost:3306/mental_health_assistant` | 数据库连接 |
 | `server.port` | `1236` | 服务端口 |
-| `spring.ai.openai.api-key` | 无（需配置） | **请勿在代码中硬编码密钥，建议通过环境变量注入** |
+| `spring.ai.openai.api-key` | `${AI_API_KEY:sk-no-key-configured}` | 从环境变量 `AI_API_KEY` 读取；未配置时 AI 对话走本地兜底回复 |
 | `spring.ai.openai.base-url` | `https://api.deepseek.com` | OpenAI 兼容接口地址 |
 | `spring.ai.openai.chat.options.model` | `deepseek-v4-pro` | 对话模型 |
 | `jwt.secret` | 本地默认值 | **生产环境务必更换强密钥** |
 | `app.upload-dir` | `uploads` | 文件上传目录 |
 
-**推荐**：通过环境变量覆盖敏感配置，避免密钥进入版本库：
+**推荐**：通过环境变量注入密钥，避免密钥进入版本库：
 
 ```bash
 # PowerShell
-$env:SPRING_AI_OPENAI_API_KEY='你的Key'
+$env:AI_API_KEY='你的Key'          # 设置后即接入 DeepSeek 智能对话
 $env:JWT_SECRET='生产环境强密钥'
 mvn spring-boot:run
 ```
