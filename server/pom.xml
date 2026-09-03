@@ -62,12 +62,6 @@
             <version>5.8.25</version>
         </dependency>
 
-        <!-- SSE 流式（仅引入 reactor-core，保持 Spring MVC 为主框架） -->
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-core</artifactId>
-        </dependency>
-
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

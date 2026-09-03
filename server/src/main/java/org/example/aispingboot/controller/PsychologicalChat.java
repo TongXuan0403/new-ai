@@ -4,7 +4,6 @@ import cn.hutool.json.JSONUtil;
 import jakarta.validation.Valid;
 import org.example.aispingboot.AiService.PsychologicalSupportService;
 import org.example.aispingboot.DTO.command.ConsultationSessionCreateDTO;
-import org.example.aispingboot.DTO.command.ConsultationStreamDTO;
 import org.example.aispingboot.DTO.response.ConsultationSessionResponseDTO;
 import org.example.aispingboot.common.Result;
 import org.example.aispingboot.common.ResultCode;
@@ -19,8 +18,6 @@ import org.example.aispingboot.service.RiskDetectionService;
 import org.example.aispingboot.service.UserService;
 import org.example.aispingboot.util.SecurityUtil;
 import org.springframework.http.MediaType;
-import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,12 +26,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.time.Duration;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 心理咨询会话控制器：二阶段流程。
@@ -49,6 +48,7 @@ public class PsychologicalChat {
     private final ConsultationMessageService consultationMessageService;
     private final UserService userService;
     private final ConsentService consentService;
+    private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
     public PsychologicalChat(PsychologicalSupportService psychologicalSupportService,
                              ConsultationSessionService consultationSessionService,
@@ -67,7 +67,7 @@ public class PsychologicalChat {
         Long userId = SecurityUtil.getCurrentUserId();
         consentService.ensureConsented(userId);
         ConsultationSession session = consultationSessionService.createSession(userId, createDTO);
-        if (StringUtils.hasText(createDTO.getInitialMessage())) {
+        if (createDTO.getInitialMessage() != null && !createDTO.getInitialMessage().isBlank()) {
             psychologicalSupportService.submitAndGenerate(userId, session.getId(), createDTO.getInitialMessage(), createDTO.getModel());
         }
         return Result.ok(consultationSessionService.getSessionDetail(session.getId(), userService.getEntityById(userId)));
@@ -98,10 +98,10 @@ public class PsychologicalChat {
         String sessionIdValue = body.get("sessionId");
         String content = body.get("content");
         String model = body.get("model");
-        if (!StringUtils.hasText(sessionIdValue)) {
+        if (sessionIdValue == null || sessionIdValue.isBlank()) {
             throw new BusinessException(ResultCode.PARAM_MISSING, "会话ID不能为空");
         }
-        if (!StringUtils.hasText(content)) {
+        if (content == null || content.isBlank()) {
             throw new BusinessException(ResultCode.PARAM_MISSING, "消息内容不能为空");
         }
         if (content.length() > 2000) {
@@ -129,71 +129,63 @@ public class PsychologicalChat {
     /**
      * SSE 流式输出：基于 assistantMessageId 读取已生成回复，分段下发。
      * 事件：risk -> delta* -> done / error
+     * 认证与数据读取在请求线程完成（SecurityContext 仅对请求线程可见），
+     * 异步线程只负责发送事件。
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> stream(@RequestParam String sessionId,
-                                                @RequestParam Long assistantMessageId) {
-        Long userId;
-        try {
-            userId = SecurityUtil.getCurrentUserId();
-        } catch (BusinessException e) {
-            return Flux.just(ServerSentEvent.<String>builder().event("error")
-                    .data(JSONUtil.toJsonStr(Result.error(ResultCode.UNAUTHORIZED))).build());
-        }
-        Long dbSessionId;
-        try {
-            dbSessionId = parseSessionId(sessionId);
-        } catch (BusinessException e) {
-            return Flux.just(ServerSentEvent.<String>builder().event("error")
-                    .data(JSONUtil.toJsonStr(Result.error(e.getCode(), e.getMessage()))).build());
-        }
+    public SseEmitter stream(@RequestParam String sessionId, @RequestParam Long assistantMessageId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        Long dbSessionId = parseSessionId(sessionId);
+        consultationSessionService.validateSessionOwnership(dbSessionId, userId);
+        ConsultationMessage aiMessage = consultationMessageService.listMessages(dbSessionId).stream()
+                .filter(m -> m.getId().equals(assistantMessageId))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND, "回复消息不存在"));
 
-        try {
-            consultationSessionService.validateSessionOwnership(dbSessionId, userId);
-            ConsultationMessage aiMessage = consultationMessageService.listMessages(dbSessionId).stream()
-                    .filter(m -> m.getId().equals(assistantMessageId))
-                    .findFirst()
-                    .orElseThrow(() -> new BusinessException(ResultCode.NOT_FOUND, "回复消息不存在"));
+        ConsultationSession session = consultationSessionService.getEntity(dbSessionId);
+        int riskLevel = session != null && session.getRiskLevel() != null ? session.getRiskLevel() : 0;
+        String actionType = riskLevel >= 3 ? "SHOW_CRISIS_CARD"
+                : riskLevel == 2 ? "SHOW_GUIDANCE" : "NONE";
 
-            ConsultationSession session = consultationSessionService.getEntity(dbSessionId);
-            int riskLevel = session != null && session.getRiskLevel() != null ? session.getRiskLevel() : 0;
-            String actionType = riskLevel >= 3 ? "SHOW_CRISIS_CARD"
-                    : riskLevel == 2 ? "SHOW_GUIDANCE" : "NONE";
+        Map<String, Object> riskEvent = new LinkedHashMap<>();
+        riskEvent.put("riskLevel", riskLevel);
+        riskEvent.put("actionType", actionType);
+        riskEvent.put("ruleVersion", RiskDetectionService.RULE_VERSION);
 
-            Map<String, Object> riskEvent = new LinkedHashMap<>();
-            riskEvent.put("riskLevel", riskLevel);
-            riskEvent.put("actionType", actionType);
-            riskEvent.put("ruleVersion", RiskDetectionService.RULE_VERSION);
+        String[] fragments = psychologicalSupportService.splitReply(aiMessage.getContent());
+        Long aiId = aiMessage.getId();
+        String aiModel = aiMessage.getAiModel();
 
-            String[] fragments = psychologicalSupportService.splitReply(aiMessage.getContent());
-
-            Flux<ServerSentEvent<String>> riskSse = Flux.just(ServerSentEvent.<String>builder()
-                    .event("risk")
-                    .data(JSONUtil.toJsonStr(riskEvent))
-                    .build());
-
-            Flux<ServerSentEvent<String>> deltaSse = Flux.fromArray(fragments)
-                    .map(fragment -> ServerSentEvent.<String>builder()
-                            .event("delta")
-                            .data(JSONUtil.toJsonStr(Map.of("content", fragment)))
-                            .build());
-
-            Flux<ServerSentEvent<String>> doneSse = Flux.just(ServerSentEvent.<String>builder()
-                    .event("done")
-                    .data(JSONUtil.toJsonStr(Map.of(
-                            "assistantMessageId", aiMessage.getId(),
-                            "model", aiMessage.getAiModel() == null ? "" : aiMessage.getAiModel())))
-                    .build());
-
-            return Flux.concat(riskSse, deltaSse, doneSse)
-                    .delayElements(Duration.ofMillis(40));
-        } catch (BusinessException e) {
-            return Flux.just(ServerSentEvent.<String>builder().event("error")
-                    .data(JSONUtil.toJsonStr(Result.error(e.getCode(), e.getMessage()))).build());
-        } catch (Exception e) {
-            return Flux.just(ServerSentEvent.<String>builder().event("error")
-                    .data(JSONUtil.toJsonStr(Result.error(ResultCode.SYSTEM_ERROR))).build());
-        }
+        SseEmitter emitter = new SseEmitter(30000L);
+        sseExecutor.execute(() -> {
+            try {
+                emitter.send(SseEmitter.event().name("risk").data(JSONUtil.toJsonStr(riskEvent)));
+                for (String fragment : fragments) {
+                    emitter.send(SseEmitter.event().name("delta")
+                            .data(JSONUtil.toJsonStr(Map.of("content", fragment))));
+                    try {
+                        Thread.sleep(40);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                emitter.send(SseEmitter.event().name("done").data(JSONUtil.toJsonStr(Map.of(
+                        "assistantMessageId", aiId,
+                        "model", aiModel == null ? "" : aiModel))));
+                emitter.complete();
+            } catch (IOException e) {
+                emitter.completeWithError(e);
+            } catch (Exception e) {
+                try {
+                    emitter.send(SseEmitter.event().name("error")
+                            .data(JSONUtil.toJsonStr(Result.error(ResultCode.SYSTEM_ERROR))));
+                } catch (IOException ignored) {
+                }
+                emitter.complete();
+            }
+        });
+        return emitter;
     }
 
     private Long parseSessionId(String sessionId) {
