@@ -19,6 +19,9 @@
         <button class="nav-item" :class="{ active: route.name === 'knowledge' }" @click="go('knowledge')">
           <span class="nav-icon">▧</span><span>知识库</span>
         </button>
+        <button class="nav-item" :class="{ active: route.name === 'exercises' }" @click="go('exercises')">
+          <span class="nav-icon">☉</span><span>自助练习</span>
+        </button>
         <button class="nav-item" :class="{ active: route.name === 'privacy' }" @click="go('privacy')">
           <span class="nav-icon">⊙</span><span>隐私与数据</span>
         </button>

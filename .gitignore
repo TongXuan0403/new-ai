@@ -6,6 +6,7 @@ web/*.log
 # Java / Maven
 server/target/
 *.class
+server/*.log
 
 # IDE
 .idea/

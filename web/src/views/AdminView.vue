@@ -117,6 +117,61 @@
       </section>
     </div>
 
+    <!-- 自助练习 -->
+    <div v-if="activeTab === 'exercise'">
+      <section class="panel">
+        <div class="section-heading">
+          <div><span class="section-kicker">内容维护</span><h2>自助练习库</h2></div>
+          <button class="primary-button small-button" type="button" @click="openExerciseModal()">新建练习 <span>＋</span></button>
+        </div>
+        <div class="admin-article-list">
+          <div v-for="exercise in exercises" :key="exercise.id" class="admin-article">
+            <div>
+              <strong>{{ exercise.title }}</strong>
+              <small>{{ exercise.categoryName || '自助练习' }} · {{ exercise.minutes }} 分钟 · {{ exerciseStatusLabel(exercise.status) }}</small>
+              <small v-if="exercise.tags" class="article-tags">{{ exercise.tags.split(',').map((t) => '#' + t.trim()).join(' ') }}</small>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="status-button" type="button" @click="toggleExercise(exercise)">{{ exercise.status === 'PUBLISHED' ? '下线' : '发布' }}</button>
+              <button class="status-button" type="button" @click="openExerciseModal(exercise)">编辑</button>
+              <button class="status-button danger" type="button" @click="removeExercise(exercise)">删除</button>
+            </div>
+          </div>
+          <div v-if="!exercises.length" class="empty-state">暂无练习</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 配置版本 -->
+    <div v-if="activeTab === 'config'">
+      <section class="panel">
+        <div class="section-heading">
+          <div><span class="section-kicker">提示词 / 模型 / 规则</span><h2>系统配置版本</h2></div>
+          <button class="primary-button small-button" type="button" @click="openConfigModal()">新建版本 <span>＋</span></button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:10px">每类配置仅一条生效；修改后创建草稿并「生效」，新的对话与风险检测将使用该版本，旧消息与风险事件保留当时版本号可追溯。</p>
+        <div v-for="group in configTypeGroups" :key="group.type" class="config-group">
+          <h4>{{ group.label }} <span class="muted" style="color:var(--muted);font-size:12px">当前生效：{{ activeLabel(group.type) }}</span></h4>
+          <div class="config-list">
+            <div v-for="version in group.items" :key="version.id" class="config-item" :class="version.status.toLowerCase()">
+              <div>
+                <strong>{{ version.version }}</strong>
+                <span class="config-status" :class="version.status.toLowerCase()">{{ versionStatusLabel(version.status) }}</span>
+                <small>{{ version.name }}<template v-if="version.remark"> · {{ version.remark }}</template></small>
+                <pre v-if="version.content" class="config-preview">{{ version.content }}</pre>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button v-if="version.status === 'DRAFT'" class="status-button primary" type="button" @click="openConfigModal(version)">编辑</button>
+                <button v-if="version.status === 'DRAFT' || version.status === 'DISABLED'" class="status-button" type="button" @click="activateConfig(version)">生效</button>
+                <button v-if="version.status === 'ACTIVE'" class="status-button" type="button" disabled style="opacity:.5">生效中</button>
+                <button v-if="version.status !== 'ACTIVE'" class="status-button danger" type="button" @click="removeConfig(version)">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <!-- 对话反馈 -->
     <div v-if="activeTab === 'feedback'">
       <section class="panel table-panel">
@@ -201,6 +256,46 @@
         </div>
       </div>
     </div>
+    <!-- 练习编辑模态框 -->
+    <div v-if="exerciseModal" class="modal-mask" @click.self="exerciseModal = null">
+      <div class="modal">
+        <h3>{{ exerciseModal.id ? '编辑练习' : '新建练习' }}</h3>
+        <div class="modal-field"><label>名称</label><input v-model="exerciseForm.title" /></div>
+        <div class="modal-field"><label>简介</label><textarea v-model="exerciseForm.summary"></textarea></div>
+        <div class="modal-field"><label>练习步骤（每行一步）</label><textarea v-model="exerciseForm.content" style="min-height:140px"></textarea></div>
+        <div class="modal-field"><label>预计时长（分钟）</label><input v-model.number="exerciseForm.minutes" type="number" min="1" max="60" /></div>
+        <div class="modal-field"><label>标签（逗号分隔）</label><input v-model="exerciseForm.tags" placeholder="如：焦虑,呼吸" /></div>
+        <div class="modal-actions">
+          <button class="text-button" type="button" @click="exerciseModal = null">取消</button>
+          <button class="primary-button" type="button" @click="saveExercise">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 配置版本编辑模态框 -->
+    <div v-if="configModal" class="modal-mask" @click.self="configModal = null">
+      <div class="modal" style="max-width:560px">
+        <h3>{{ configModal.id ? '编辑版本' : '新建版本' }}</h3>
+        <div class="modal-field"><label>类型</label>
+          <select v-model="configForm.configType" :disabled="!!configModal.id">
+            <option value="PROMPT">PROMPT（提示词）</option>
+            <option value="MODEL">MODEL（模型）</option>
+            <option value="RISK_RULE">RISK_RULE（风险规则）</option>
+          </select>
+        </div>
+        <div class="modal-field"><label>名称</label><input v-model="configForm.name" /></div>
+        <div class="modal-field"><label>版本号（同类型内唯一）</label><input v-model="configForm.version" :disabled="!!configModal.id" /></div>
+        <div class="modal-field"><label>内容</label>
+          <textarea v-model="configForm.content" style="min-height:160px"
+                    placeholder="PROMPT：系统提示词文本；MODEL：模型名；RISK_RULE：JSON {crisis:[...],harmOthers:[...],warning:[...],concern:[...]}" />
+        </div>
+        <div class="modal-field"><label>备注</label><input v-model="configForm.remark" /></div>
+        <div class="modal-actions">
+          <button class="text-button" type="button" @click="configModal = null">取消</button>
+          <button class="primary-button" type="button" @click="saveConfig">保存</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -210,6 +305,9 @@ import {
   adminOverview, adminRiskPage, adminRiskUpdateStatus,
   adminCrisisList, adminCreateCrisis, adminUpdateCrisis, adminDeleteCrisis,
   adminArticlePage, adminCreateArticle, adminUpdateArticle, adminDeleteArticle, adminUpdateArticleStatus,
+  adminExercisePage, adminCreateExercise, adminUpdateExercise, adminDeleteExercise, adminUpdateExerciseStatus,
+  adminConfigVersionPage, adminCreateConfigVersion, adminUpdateConfigVersion,
+  adminActivateConfigVersion, adminDeleteConfigVersion,
   adminFeedbackPage, adminAuditPage
 } from '../api'
 import { toast } from '../utils/toast'
@@ -219,6 +317,8 @@ const tabs = [
   { key: 'risk', label: '风险事件中心' },
   { key: 'resource', label: '危机资源' },
   { key: 'article', label: '文章审核' },
+  { key: 'exercise', label: '自助练习' },
+  { key: 'config', label: '配置版本' },
   { key: 'feedback', label: '对话反馈' },
   { key: 'audit', label: '审计日志' }
 ]
@@ -229,6 +329,8 @@ const riskPage = ref(1)
 const riskTotalPages = ref(1)
 const resources = ref([])
 const articles = ref([])
+const exercises = ref([])
+const configVersions = ref([])
 const feedbacks = ref([])
 const auditLogs = ref([])
 
@@ -236,6 +338,27 @@ const resourceModal = ref(null)
 const resourceForm = reactive({ id: null, name: '', phone: '', resourceType: 'hotline', description: '', region: '', enabled: true })
 const articleModal = ref(null)
 const articleForm = reactive({ id: null, title: '', categoryId: 1, summary: '', content: '', source: '' })
+const exerciseModal = ref(null)
+const exerciseForm = reactive({ id: null, title: '', summary: '', content: '', minutes: 5, tags: '' })
+const configModal = ref(null)
+const configForm = reactive({ id: null, configType: 'PROMPT', name: '', version: '', content: '', remark: '' })
+
+const configTypeGroups = computed(() => {
+  const meta = [
+    { type: 'PROMPT', label: '提示词' },
+    { type: 'MODEL', label: '模型' },
+    { type: 'RISK_RULE', label: '风险规则' }
+  ]
+  return meta.map((m) => ({
+    ...m,
+    items: configVersions.value.filter((v) => v.configType === m.type)
+  }))
+})
+
+function activeLabel(type) {
+  const active = configVersions.value.find((v) => v.configType === type && v.status === 'ACTIVE')
+  return active ? active.version : '未配置（使用内置默认）'
+}
 
 const levelSummary = computed(() => {
   if (!overview.value?.riskByLevel) return '-'
@@ -248,6 +371,8 @@ onMounted(() => {
   loadRisk(1)
   loadResources()
   loadArticles()
+  loadExercises()
+  loadConfigs()
   loadFeedbacks()
   loadAuditLogs()
 })
@@ -399,6 +524,141 @@ async function loadFeedbacks() {
   }
 }
 
+// ---------- 自助练习管理 ----------
+async function loadExercises() {
+  try {
+    const result = await adminExercisePage({ page: 1, pageSize: 50 })
+    exercises.value = result?.records || []
+  } catch (e) {
+    exercises.value = []
+  }
+}
+
+function openExerciseModal(exercise) {
+  if (exercise) {
+    Object.assign(exerciseForm, {
+      id: exercise.id, title: exercise.title, summary: exercise.summary || '',
+      content: exercise.content || '', minutes: exercise.minutes || 5, tags: exercise.tags || ''
+    })
+  } else {
+    Object.assign(exerciseForm, { id: null, title: '', summary: '', content: '', minutes: 5, tags: '' })
+  }
+  exerciseModal.value = true
+}
+
+async function saveExercise() {
+  if (!exerciseForm.title) { toast('请填写练习名称'); return }
+  const payload = {
+    categoryId: 4,
+    title: exerciseForm.title,
+    summary: exerciseForm.summary,
+    content: exerciseForm.content,
+    minutes: Number(exerciseForm.minutes) || 5,
+    tags: exerciseForm.tags,
+    sortOrder: 0,
+    status: 'DRAFT'
+  }
+  try {
+    if (exerciseForm.id) {
+      await adminUpdateExercise(exerciseForm.id, payload)
+    } else {
+      await adminCreateExercise(payload)
+    }
+    exerciseModal.value = null
+    toast('练习已保存')
+    loadExercises()
+  } catch (e) {
+    toast(e.message || '保存失败')
+  }
+}
+
+async function toggleExercise(exercise) {
+  const next = exercise.status === 'PUBLISHED' ? 'OFFLINE' : 'PUBLISHED'
+  try {
+    await adminUpdateExerciseStatus(exercise.id, next)
+    toast(next === 'PUBLISHED' ? '练习已发布到学生端' : '练习已下线')
+    loadExercises()
+    loadOverview()
+  } catch (e) {
+    toast(e.message || '操作失败')
+  }
+}
+
+async function removeExercise(exercise) {
+  try {
+    await adminDeleteExercise(exercise.id)
+    toast('练习已删除')
+    loadExercises()
+  } catch (e) {
+    toast(e.message || '删除失败')
+  }
+}
+
+// ---------- 配置版本管理 ----------
+async function loadConfigs() {
+  try {
+    const result = await adminConfigVersionPage({ page: 1, pageSize: 100 })
+    configVersions.value = result?.records || []
+  } catch (e) {
+    configVersions.value = []
+  }
+}
+
+function openConfigModal(version) {
+  if (version) {
+    Object.assign(configForm, {
+      id: version.id, configType: version.configType, name: version.name,
+      version: version.version, content: version.content || '', remark: version.remark || ''
+    })
+  } else {
+    Object.assign(configForm, { id: null, configType: 'PROMPT', name: '', version: '', content: '', remark: '' })
+  }
+  configModal.value = true
+}
+
+async function saveConfig() {
+  if (!configForm.name || !configForm.version) { toast('请填写名称与版本号'); return }
+  const payload = {
+    configType: configForm.configType,
+    name: configForm.name,
+    version: configForm.version,
+    content: configForm.content,
+    remark: configForm.remark
+  }
+  try {
+    if (configForm.id) {
+      await adminUpdateConfigVersion(configForm.id, payload)
+    } else {
+      await adminCreateConfigVersion(payload)
+    }
+    configModal.value = null
+    toast('版本已保存（草稿）')
+    loadConfigs()
+  } catch (e) {
+    toast(e.message || '保存失败')
+  }
+}
+
+async function activateConfig(version) {
+  try {
+    await adminActivateConfigVersion(version.id)
+    toast(`版本 ${version.version} 已生效`)
+    loadConfigs()
+  } catch (e) {
+    toast(e.message || '生效失败')
+  }
+}
+
+async function removeConfig(version) {
+  try {
+    await adminDeleteConfigVersion(version.id)
+    toast('版本已删除')
+    loadConfigs()
+  } catch (e) {
+    toast(e.message || '删除失败')
+  }
+}
+
 async function loadAuditLogs() {
   try {
     const result = await adminAuditPage({ page: 1, pageSize: 20 })
@@ -413,6 +673,12 @@ function riskLevelLabel(level) {
 }
 function statusLabel(status) {
   return { DRAFT: '草稿', PENDING_REVIEW: '待审', PUBLISHED: '已发布', REJECTED: '已驳回', OFFLINE: '已下线' }[status] || status
+}
+function exerciseStatusLabel(status) {
+  return { DRAFT: '草稿', PUBLISHED: '已发布', OFFLINE: '已下线' }[status] || status
+}
+function versionStatusLabel(status) {
+  return { DRAFT: '草稿', ACTIVE: '生效中', DISABLED: '已停用' }[status] || status
 }
 function helpfulnessLabel(value) {
   return { 1: '有帮助', 2: '一般', 3: '没帮助' }[value] || value

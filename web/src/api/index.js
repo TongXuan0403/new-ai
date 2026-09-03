@@ -35,6 +35,20 @@ export const sendChatMessage = (payload) => request.post('/psychological-chat/me
 // ---------- 知识库（公开） ----------
 export const listKnowledge = (params) => request.get('/knowledge', { params })
 export const getArticle = (id) => request.get(`/knowledge/article/${id}`)
+export const listKnowledgeTags = () => request.get('/knowledge/tags')
+export const listRecommendArticles = (limit) => request.get('/knowledge/recommend', { params: { limit } })
+
+// ---------- 文章收藏（登录后） ----------
+export const addFavorite = (articleId) => request.post(`/article-favorites/${articleId}`)
+export const removeFavorite = (articleId) => request.delete(`/article-favorites/${articleId}`)
+export const pageMyFavorites = (params) => request.get('/article-favorites', { params })
+export const myFavoriteIds = () => request.get('/article-favorites/ids')
+
+// ---------- 自助练习 ----------
+export const listExercises = (params) => request.get('/exercises', { params })
+export const getExercise = (id) => request.get(`/exercises/${id}`)
+export const completeExercise = (id, payload) => request.post(`/exercises/${id}/complete`, payload)
+export const myExerciseCompletions = () => request.get('/exercises/my/completions')
 
 // ---------- 危机资源（公开启用） ----------
 export const listCrisisResources = () => request.get('/crisis-resources')
@@ -57,3 +71,19 @@ export const adminUpdateCrisis = (id, payload) => request.put(`/admin/crisis-res
 export const adminDeleteCrisis = (id) => request.delete(`/admin/crisis-resources/${id}`)
 export const adminFeedbackPage = (params) => request.get('/admin/chat-feedback/page', { params })
 export const adminAuditPage = (params) => request.get('/admin/audit-logs/page', { params })
+
+// ---------- 管理端 · 自助练习 ----------
+export const adminExercisePage = (params) => request.get('/admin/exercises/page', { params })
+export const adminCreateExercise = (payload) => request.post('/admin/exercises', payload)
+export const adminUpdateExercise = (id, payload) => request.put(`/admin/exercises/${id}`, payload)
+export const adminDeleteExercise = (id) => request.delete(`/admin/exercises/${id}`)
+export const adminUpdateExerciseStatus = (id, status) => request.put(`/admin/exercises/${id}/status`, null, { params: { status } })
+
+// ---------- 管理端 · 系统配置版本化 ----------
+export const adminConfigVersionPage = (params) => request.get('/admin/system-config/versions', { params })
+export const adminConfigVersionDetail = (id) => request.get(`/admin/system-config/versions/${id}`)
+export const adminCreateConfigVersion = (payload) => request.post('/admin/system-config/versions', payload)
+export const adminUpdateConfigVersion = (id, payload) => request.put(`/admin/system-config/versions/${id}`, payload)
+export const adminActivateConfigVersion = (id) => request.post(`/admin/system-config/versions/${id}/activate`)
+export const adminDisableConfigVersion = (id) => request.post(`/admin/system-config/versions/${id}/disable`)
+export const adminDeleteConfigVersion = (id) => request.delete(`/admin/system-config/versions/${id}`)

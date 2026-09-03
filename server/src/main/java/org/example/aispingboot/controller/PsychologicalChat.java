@@ -48,18 +48,21 @@ public class PsychologicalChat {
     private final ConsultationMessageService consultationMessageService;
     private final UserService userService;
     private final ConsentService consentService;
+    private final RiskDetectionService riskDetectionService;
     private final ExecutorService sseExecutor = Executors.newCachedThreadPool();
 
     public PsychologicalChat(PsychologicalSupportService psychologicalSupportService,
                              ConsultationSessionService consultationSessionService,
                              ConsultationMessageService consultationMessageService,
                              UserService userService,
-                             ConsentService consentService) {
+                             ConsentService consentService,
+                             RiskDetectionService riskDetectionService) {
         this.psychologicalSupportService = psychologicalSupportService;
         this.consultationSessionService = consultationSessionService;
         this.consultationMessageService = consultationMessageService;
         this.userService = userService;
         this.consentService = consentService;
+        this.riskDetectionService = riskDetectionService;
     }
 
     @PostMapping("/session/start")
@@ -120,7 +123,7 @@ public class PsychologicalChat {
         payload.put("riskType", result.riskType);
         payload.put("actionType", result.actionType);
         payload.put("riskEventId", result.riskEventId);
-        payload.put("ruleVersion", RiskDetectionService.RULE_VERSION);
+        payload.put("ruleVersion", result.ruleVersion);
         payload.put("model", result.model);
         payload.put("reply", result.reply);
         return Result.ok(payload);
@@ -150,7 +153,7 @@ public class PsychologicalChat {
         Map<String, Object> riskEvent = new LinkedHashMap<>();
         riskEvent.put("riskLevel", riskLevel);
         riskEvent.put("actionType", actionType);
-        riskEvent.put("ruleVersion", RiskDetectionService.RULE_VERSION);
+        riskEvent.put("ruleVersion", riskDetectionService.currentRuleVersion());
 
         String[] fragments = psychologicalSupportService.splitReply(aiMessage.getContent());
         Long aiId = aiMessage.getId();

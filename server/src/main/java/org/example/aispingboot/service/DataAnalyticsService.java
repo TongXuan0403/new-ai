@@ -2,13 +2,19 @@ package org.example.aispingboot.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.example.aispingboot.DTO.response.DataOverviewResponseDTO;
+import org.example.aispingboot.entity.ArticleFavorite;
 import org.example.aispingboot.entity.ConsultationSession;
 import org.example.aispingboot.entity.EmotionDiary;
+import org.example.aispingboot.entity.Exercise;
+import org.example.aispingboot.entity.ExerciseCompletion;
 import org.example.aispingboot.entity.KnowledgeArticle;
 import org.example.aispingboot.entity.RiskEvent;
 import org.example.aispingboot.entity.User;
+import org.example.aispingboot.mapper.ArticleFavoriteMapper;
 import org.example.aispingboot.mapper.ConsultationSessionMapper;
 import org.example.aispingboot.mapper.EmotionDiaryMapper;
+import org.example.aispingboot.mapper.ExerciseCompletionMapper;
+import org.example.aispingboot.mapper.ExerciseMapper;
 import org.example.aispingboot.mapper.KnowledgeArticleMapper;
 import org.example.aispingboot.mapper.RiskEventMapper;
 import org.example.aispingboot.mapper.UserMapper;
@@ -27,15 +33,22 @@ public class DataAnalyticsService {
     private final ConsultationSessionMapper sessionMapper;
     private final EmotionDiaryMapper diaryMapper;
     private final KnowledgeArticleMapper articleMapper;
+    private final ArticleFavoriteMapper favoriteMapper;
+    private final ExerciseMapper exerciseMapper;
+    private final ExerciseCompletionMapper completionMapper;
     private final RiskEventMapper riskEventMapper;
 
     public DataAnalyticsService(UserMapper userMapper, ConsultationSessionMapper sessionMapper,
                                 EmotionDiaryMapper diaryMapper, KnowledgeArticleMapper articleMapper,
-                                RiskEventMapper riskEventMapper) {
+                                ArticleFavoriteMapper favoriteMapper, ExerciseMapper exerciseMapper,
+                                ExerciseCompletionMapper completionMapper, RiskEventMapper riskEventMapper) {
         this.userMapper = userMapper;
         this.sessionMapper = sessionMapper;
         this.diaryMapper = diaryMapper;
         this.articleMapper = articleMapper;
+        this.favoriteMapper = favoriteMapper;
+        this.exerciseMapper = exerciseMapper;
+        this.completionMapper = completionMapper;
         this.riskEventMapper = riskEventMapper;
     }
 
@@ -53,6 +66,10 @@ public class DataAnalyticsService {
                 .eq(KnowledgeArticle::getStatus, "PUBLISHED"));
         Long totalViews = articleMapper.selectCount(new LambdaQueryWrapper<KnowledgeArticle>()
                 .gt(KnowledgeArticle::getViewCount, 0));
+        Long totalFavorites = favoriteMapper.selectCount(null);
+        Long publishedExercises = exerciseMapper.selectCount(new LambdaQueryWrapper<Exercise>()
+                .eq(Exercise::getStatus, "PUBLISHED"));
+        Long exerciseCompletions = completionMapper.selectCount(null);
 
         List<RiskEvent> riskEvents = riskEventMapper.selectList(null);
         long riskTotal = riskEvents.size();
@@ -72,6 +89,9 @@ public class DataAnalyticsService {
                 .diaryUsers(diaryUsers)
                 .publishedArticles(publishedArticles)
                 .totalViews(totalViews)
+                .totalFavorites(totalFavorites)
+                .publishedExercises(publishedExercises)
+                .exerciseCompletions(exerciseCompletions)
                 .riskEvents(riskTotal)
                 .riskPending(riskPending)
                 .riskByLevel(riskByLevel)

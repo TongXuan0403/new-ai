@@ -30,6 +30,7 @@ const routes = [
       { path: 'chat', name: 'chat', component: () => import('../views/ChatView.vue'), meta: { requiresConsent: true, title: '倾诉对话' } },
       { path: 'diary', name: 'diary', component: () => import('../views/DiaryView.vue'), meta: { requiresConsent: true, title: '情绪日记' } },
       { path: 'knowledge', name: 'knowledge', component: () => import('../views/KnowledgeView.vue'), meta: { title: '知识库' } },
+      { path: 'exercises', name: 'exercises', component: () => import('../views/ExerciseView.vue'), meta: { title: '自助练习' } },
       { path: 'privacy', name: 'privacy', component: () => import('../views/PrivacyView.vue'), meta: { title: '隐私与数据' } },
       { path: 'admin', name: 'admin', component: () => import('../views/AdminView.vue'), meta: { requiresAdmin: true, title: '管理端' } }
     ]

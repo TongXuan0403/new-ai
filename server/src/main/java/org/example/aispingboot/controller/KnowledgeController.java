@@ -20,8 +20,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
- * 知识库：学生端公开浏览；管理端审核/维护（/admin/knowledge/** 需管理员）。
+ * 知识库：学生端公开浏览（含标签/收藏/推荐）；管理端审核/维护（/admin/knowledge/** 需管理员）。
+ * 收藏接口使用 /article-favorites/**（登录后），避免与公开的 /knowledge/** 冲突导致隐私泄露。
  */
 @RestController
 public class KnowledgeController {
@@ -37,19 +40,72 @@ public class KnowledgeController {
     public Result<KnowledgePageResponseDTO> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String tag,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "12") int pageSize) {
-        return Result.ok(knowledgeBaseService.listPublished(keyword, category, page, pageSize));
+        return Result.ok(knowledgeBaseService.listPublished(keyword, category, tag, page, pageSize));
     }
 
     @GetMapping("/knowledge/article/{id}")
     public Result<KnowledgeArticleResponseDTO> detail(@PathVariable Long id) {
-        return Result.ok(knowledgeBaseService.getById(id, true));
+        return Result.ok(knowledgeBaseService.detailWithView(id));
     }
 
     @GetMapping("/knowledge/category/tree")
     public Result<Object> categoryTree() {
-        return Result.ok(knowledgeBaseService.listPublished("", null, 1, 1).getCategories());
+        return Result.ok(knowledgeBaseService.listPublished("", null, null, 1, 1).getCategories());
+    }
+
+    @GetMapping("/knowledge/tags")
+    public Result<List<String>> tags() {
+        return Result.ok(knowledgeBaseService.listTags());
+    }
+
+    /**
+     * 个性化推荐：已登录用户按其收藏偏好推荐；未登录返回热门已发布文章。
+     */
+    @GetMapping("/knowledge/recommend")
+    public Result<List<KnowledgeArticleResponseDTO>> recommend(
+            @RequestParam(defaultValue = "6") int limit) {
+        Long userId = null;
+        try {
+            userId = SecurityUtil.getCurrentUserId();
+        } catch (Exception ignored) {
+            // 公开接口：匿名访问仅返回热门兜底
+        }
+        return Result.ok(knowledgeBaseService.recommend(userId, limit));
+    }
+
+    // ------------------------------------------------------------------
+    // 收藏（登录后，路径独立于公开的 /knowledge/**）
+    // ------------------------------------------------------------------
+
+    @PostMapping("/article-favorites/{articleId}")
+    public Result<Boolean> addFavorite(@PathVariable Long articleId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        boolean favorited = knowledgeBaseService.addFavorite(userId, articleId);
+        return Result.ok(favorited, favorited ? "已收藏" : "已在收藏中");
+    }
+
+    @DeleteMapping("/article-favorites/{articleId}")
+    public Result<Boolean> removeFavorite(@PathVariable Long articleId) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        knowledgeBaseService.removeFavorite(userId, articleId);
+        return Result.ok(true, "已取消收藏");
+    }
+
+    @GetMapping("/article-favorites")
+    public Result<KnowledgePageResponseDTO> myFavorites(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return Result.ok(knowledgeBaseService.myFavorites(userId, page, pageSize));
+    }
+
+    @GetMapping("/article-favorites/ids")
+    public Result<List<Long>> favoriteIds() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        return Result.ok(knowledgeBaseService.favoriteArticleIds(userId));
     }
 
     @GetMapping("/admin/knowledge/article/page")

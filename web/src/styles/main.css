@@ -315,6 +315,25 @@ td{color:var(--muted-strong);font-size:12px}
 .resource-config-grid strong,.resource-config-grid span{display:block}
 .resource-config-grid strong{font-size:12px}
 .resource-config-grid span{margin-top:6px;color:var(--muted);font-size:11px;line-height:1.5}
+.article-tags{display:block;margin-top:2px;color:var(--muted);font-size:10px}
+.status-button.primary{color:#fff;background:var(--green)}
+.status-button.primary:hover{border-color:var(--green-dark);background:var(--green-dark)}
+
+/* ---------- 配置版本 ---------- */
+.config-group{margin-bottom:18px}
+.config-group h4{margin:0 0 8px;font-size:13px}
+.config-list{display:grid;gap:8px}
+.config-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:#fcfdfc}
+.config-item.draft{border-left:3px solid #cbd5e1}
+.config-item.active{border-left:3px solid var(--green)}
+.config-item.disabled{opacity:.72;border-left:3px solid #e5e7eb}
+.config-item strong{display:inline-block;font-size:12px}
+.config-status{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800}
+.config-status.draft{background:#eef2f7;color:#475569}
+.config-status.active{background:var(--green-soft);color:var(--green-dark)}
+.config-status.disabled{background:#f3f4f6;color:#6b7280}
+.config-item small{display:block;margin-top:3px;color:var(--muted);font-size:10px}
+.config-preview{max-height:72px;margin:6px 0 0;overflow:auto;padding:6px 8px;border-radius:5px;background:#f5f7f5;color:#374151;font-size:10px;line-height:1.5;white-space:pre-wrap;word-break:break-all}
 
 /* ---------- 模态框 ---------- */
 .modal-mask{position:fixed;z-index:200;inset:0;display:grid;place-items:center;padding:20px;background:rgba(22,38,31,.45)}

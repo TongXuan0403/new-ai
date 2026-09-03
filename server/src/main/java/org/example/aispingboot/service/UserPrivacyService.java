@@ -4,16 +4,20 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.example.aispingboot.DTO.response.PrivacyProfileResponseDTO;
 import org.example.aispingboot.common.ResultCode;
+import org.example.aispingboot.entity.ArticleFavorite;
 import org.example.aispingboot.entity.ConsultationMessage;
 import org.example.aispingboot.entity.ConsultationSession;
 import org.example.aispingboot.entity.EmotionDiary;
+import org.example.aispingboot.entity.ExerciseCompletion;
 import org.example.aispingboot.entity.User;
 import org.example.aispingboot.entity.UserConsent;
 import org.example.aispingboot.entity.UserDeletionRequest;
 import org.example.aispingboot.exception.BusinessException;
+import org.example.aispingboot.mapper.ArticleFavoriteMapper;
 import org.example.aispingboot.mapper.ConsultationMessageMapper;
 import org.example.aispingboot.mapper.ConsultationSessionMapper;
 import org.example.aispingboot.mapper.EmotionDiaryMapper;
+import org.example.aispingboot.mapper.ExerciseCompletionMapper;
 import org.example.aispingboot.mapper.UserConsentMapper;
 import org.example.aispingboot.mapper.UserDeletionRequestMapper;
 import org.example.aispingboot.mapper.UserMapper;
@@ -34,6 +38,8 @@ public class UserPrivacyService {
     private final ConsultationSessionMapper sessionMapper;
     private final ConsultationMessageMapper messageMapper;
     private final EmotionDiaryMapper diaryMapper;
+    private final ArticleFavoriteMapper favoriteMapper;
+    private final ExerciseCompletionMapper completionMapper;
     private final ConsentService consentService;
 
     public UserPrivacyService(UserMapper userMapper, UserConsentMapper userConsentMapper,
@@ -41,6 +47,8 @@ public class UserPrivacyService {
                               ConsultationSessionMapper sessionMapper,
                               ConsultationMessageMapper messageMapper,
                               EmotionDiaryMapper diaryMapper,
+                              ArticleFavoriteMapper favoriteMapper,
+                              ExerciseCompletionMapper completionMapper,
                               ConsentService consentService) {
         this.userMapper = userMapper;
         this.userConsentMapper = userConsentMapper;
@@ -48,6 +56,8 @@ public class UserPrivacyService {
         this.sessionMapper = sessionMapper;
         this.messageMapper = messageMapper;
         this.diaryMapper = diaryMapper;
+        this.favoriteMapper = favoriteMapper;
+        this.completionMapper = completionMapper;
         this.consentService = consentService;
     }
 
@@ -69,7 +79,7 @@ public class UserPrivacyService {
                 .deletionStatus(deletion != null ? deletion.getStatus() : null)
                 .sessionCount(sessionCount)
                 .diaryCount(diaryCount)
-                .dataScope(List.of("会话与消息", "情绪日记", "同意记录", "风险事件"))
+                .dataScope(List.of("会话与消息", "情绪日记", "同意记录", "风险事件", "文章收藏", "练习完成记录"))
                 .build();
     }
 
@@ -152,6 +162,14 @@ public class UserPrivacyService {
 
         UserDeletionRequest deletion = latestDeletion(userId);
         payload.put("deletionRequest", deletion);
+
+        List<ArticleFavorite> favorites = favoriteMapper.selectList(new LambdaQueryWrapper<ArticleFavorite>()
+                .eq(ArticleFavorite::getUserId, userId).orderByAsc(ArticleFavorite::getCreatedAt));
+        payload.put("articleFavorites", favorites);
+
+        List<ExerciseCompletion> completions = completionMapper.selectList(new LambdaQueryWrapper<ExerciseCompletion>()
+                .eq(ExerciseCompletion::getUserId, userId).orderByAsc(ExerciseCompletion::getCompletedAt));
+        payload.put("exerciseCompletions", completions);
 
         return JSONUtil.toJsonPrettyStr(payload);
     }

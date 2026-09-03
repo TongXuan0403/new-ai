@@ -8,6 +8,7 @@ import org.example.aispingboot.entity.ConsultationMessage;
 import org.example.aispingboot.entity.RiskEvent;
 import org.example.aispingboot.entity.User;
 import org.example.aispingboot.service.AiConfigService;
+import org.example.aispingboot.service.ConfigVersionService;
 import org.example.aispingboot.service.ConsultationMessageService;
 import org.example.aispingboot.service.ConsultationSessionService;
 import org.example.aispingboot.service.KnowledgeBaseService;
@@ -45,6 +46,7 @@ public class PsychologicalSupportService {
     private final ConsultationMessageService consultationMessageService;
     private final KnowledgeBaseService knowledgeBaseService;
     private final AiConfigService aiConfigService;
+    private final ConfigVersionService configVersionService;
     private final RiskDetectionService riskDetectionService;
     private final RiskEventService riskEventService;
     private final ObjectMapper objectMapper;
@@ -57,6 +59,7 @@ public class PsychologicalSupportService {
                                        ConsultationMessageService consultationMessageService,
                                        KnowledgeBaseService knowledgeBaseService,
                                        AiConfigService aiConfigService,
+                                       ConfigVersionService configVersionService,
                                        RiskDetectionService riskDetectionService,
                                        RiskEventService riskEventService,
                                        ObjectMapper objectMapper) {
@@ -65,6 +68,7 @@ public class PsychologicalSupportService {
         this.consultationMessageService = consultationMessageService;
         this.knowledgeBaseService = knowledgeBaseService;
         this.aiConfigService = aiConfigService;
+        this.configVersionService = configVersionService;
         this.riskDetectionService = riskDetectionService;
         this.riskEventService = riskEventService;
         this.objectMapper = objectMapper;
@@ -79,6 +83,7 @@ public class PsychologicalSupportService {
         public String actionType;
         public Long riskEventId;
         public String model;
+        public String ruleVersion;
         public List<String> auditHits;
     }
 
@@ -97,7 +102,6 @@ public class PsychologicalSupportService {
         List<String> auditHits = new ArrayList<>();
         Long riskEventId = null;
         boolean crisisCard = risk.getLevel() >= 3;
-
         if (risk.getLevel() >= 3) {
             // 危机分支：不调用模型，只输出稳定安全引导
             reply = riskDetectionService.crisisReply();
@@ -115,7 +119,8 @@ public class PsychologicalSupportService {
             riskEventId = event.getId();
         }
 
-        ConsultationMessage aiMsg = consultationMessageService.saveAssistantMessage(sessionId, reply, model, risk.getLevel());
+        ConsultationMessage aiMsg = consultationMessageService.saveAssistantMessage(
+                sessionId, reply, buildModelTrace(model), risk.getLevel());
         consultationSessionService.updateRiskLevel(sessionId, risk.getLevel());
 
         // 有足够上下文后更新默认标题
@@ -133,8 +138,19 @@ public class PsychologicalSupportService {
         result.actionType = risk.getActionType();
         result.riskEventId = riskEventId;
         result.model = model;
+        result.ruleVersion = riskDetectionService.currentRuleVersion();
         result.auditHits = auditHits;
         return result;
+    }
+
+    /**
+     * 组装可追溯的模型标识：模型名 + 生效提示词版本 + 生效规则版本，写入 ai_model 字段。
+     */
+    private String buildModelTrace(String model) {
+        String promptVersion = configVersionService.getActiveVersionLabel(
+                ConfigVersionService.TYPE_PROMPT, "prompt-v1.0");
+        String ruleVersion = riskDetectionService.currentRuleVersion();
+        return model + "|prompt=" + promptVersion + "|rule=" + ruleVersion;
     }
 
     /**
@@ -157,9 +173,11 @@ public class PsychologicalSupportService {
         }
         try {
             List<Map<String, String>> messages = new ArrayList<>();
+            String systemPrompt = configVersionService.getActiveContent(
+                    ConfigVersionService.TYPE_PROMPT, PromptManage.PSYCHOLOGICAL_SUPPORT_SYSTEM_PROMPT);
             messages.add(Map.of(
                     "role", "system",
-                    "content", PromptManage.PSYCHOLOGICAL_SUPPORT_SYSTEM_PROMPT + "\n\n" + knowledgeContext
+                    "content", systemPrompt + "\n\n" + knowledgeContext
             ));
             // 追加最近的历史（最近 6 条，最多 3 轮）
             List<ConsultationMessage> history = consultationMessageService.listMessages(sessionId);

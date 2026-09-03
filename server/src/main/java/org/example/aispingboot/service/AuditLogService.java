@@ -33,10 +33,50 @@ public class AuditLogService {
                 .targetId(targetId)
                 .ip(resolveIp())
                 .userAgent(resolveUserAgent())
-                .detail(detail)
+                .detail(toJsonDetail(detail))
                 .createdAt(LocalDateTime.now())
                 .build();
         auditLogMapper.insert(log);
+    }
+
+    /**
+     * audit_log.detail 为 JSON 列：以 { 或 [ 开头的视为合法 JSON 保持原样，
+     * 其余内容统一转义为 JSON 字符串字面量，避免 MySQL JSON 列截断。
+     */
+    private String toJsonDetail(String detail) {
+        if (!StringUtils.hasText(detail)) {
+            return null;
+        }
+        String trimmed = detail.trim();
+        char first = trimmed.charAt(0);
+        if (first == '{' || first == '[') {
+            return trimmed;
+        }
+        return escapeJsonString(trimmed);
+    }
+
+    private String escapeJsonString(String s) {
+        StringBuilder sb = new StringBuilder(s.length() + 8);
+        sb.append('"');
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        sb.append('"');
+        return sb.toString();
     }
 
     private String resolveIp() {

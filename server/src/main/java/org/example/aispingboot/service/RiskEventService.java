@@ -19,9 +19,15 @@ import java.util.stream.Collectors;
 @Service
 public class RiskEventService {
     private final RiskEventMapper riskEventMapper;
+    private final RiskDetectionService riskDetectionService;
+    private final AiConfigService aiConfigService;
 
-    public RiskEventService(RiskEventMapper riskEventMapper) {
+    public RiskEventService(RiskEventMapper riskEventMapper,
+                            RiskDetectionService riskDetectionService,
+                            AiConfigService aiConfigService) {
         this.riskEventMapper = riskEventMapper;
+        this.riskDetectionService = riskDetectionService;
+        this.aiConfigService = aiConfigService;
     }
 
     /**
@@ -44,8 +50,8 @@ public class RiskEventService {
                 .actionType(risk.getActionType())
                 .matchedRules(JSONUtil.toJsonStr(risk.getMatchedRules()))
                 .contentSummary(summary)
-                .ruleVersion(RiskDetectionService.RULE_VERSION)
-                .modelVersion(RiskDetectionService.MODEL_VERSION)
+                .ruleVersion(riskDetectionService.currentRuleVersion())
+                .modelVersion(aiConfigService.modelVersionLabel())
                 .status("待复核")
                 .crisisCardShown(crisisCardShown ? 1 : 0)
                 .createdAt(LocalDateTime.now())

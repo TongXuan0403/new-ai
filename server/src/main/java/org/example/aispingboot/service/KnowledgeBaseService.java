@@ -7,9 +7,11 @@ import org.example.aispingboot.DTO.command.ArticleStatusUpdateDTO;
 import org.example.aispingboot.DTO.response.KnowledgeArticleResponseDTO;
 import org.example.aispingboot.DTO.response.KnowledgePageResponseDTO;
 import org.example.aispingboot.common.ResultCode;
+import org.example.aispingboot.entity.ArticleFavorite;
 import org.example.aispingboot.entity.KnowledgeArticle;
 import org.example.aispingboot.entity.KnowledgeCategory;
 import org.example.aispingboot.exception.BusinessException;
+import org.example.aispingboot.mapper.ArticleFavoriteMapper;
 import org.example.aispingboot.mapper.KnowledgeArticleMapper;
 import org.example.aispingboot.mapper.KnowledgeCategoryMapper;
 import org.springframework.stereotype.Service;
@@ -18,23 +20,30 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class KnowledgeBaseService {
     private final KnowledgeArticleMapper articleMapper;
     private final KnowledgeCategoryMapper categoryMapper;
+    private final ArticleFavoriteMapper favoriteMapper;
 
-    public KnowledgeBaseService(KnowledgeArticleMapper articleMapper, KnowledgeCategoryMapper categoryMapper) {
+    public KnowledgeBaseService(KnowledgeArticleMapper articleMapper, KnowledgeCategoryMapper categoryMapper,
+                                ArticleFavoriteMapper favoriteMapper) {
         this.articleMapper = articleMapper;
         this.categoryMapper = categoryMapper;
+        this.favoriteMapper = favoriteMapper;
     }
 
     /**
-     * 学生端：仅返回已发布文章 + 分类树。
+     * 学生端：仅返回已发布文章 + 分类树。支持关键词、分类、标签筛选。
      */
-    public KnowledgePageResponseDTO listPublished(String keyword, String category, int page, int pageSize) {
+    public KnowledgePageResponseDTO listPublished(String keyword, String category, String tag, int page, int pageSize) {
         LambdaQueryWrapper<KnowledgeArticle> wrapper = new LambdaQueryWrapper<KnowledgeArticle>()
                 .eq(KnowledgeArticle::getStatus, "PUBLISHED")
                 .orderByDesc(KnowledgeArticle::getPublishedAt);
@@ -47,6 +56,12 @@ public class KnowledgeBaseService {
             } else {
                 wrapper.in(KnowledgeArticle::getCategoryId, categoryIds);
             }
+        }
+        if (StringUtils.hasText(tag)) {
+            wrapper.and(w -> w.like(KnowledgeArticle::getTags, "," + tag + ",")
+                    .or().like(KnowledgeArticle::getTags, tag + ",")
+                    .or().like(KnowledgeArticle::getTags, "," + tag)
+                    .or().eq(KnowledgeArticle::getTags, tag));
         }
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w.like(KnowledgeArticle::getTitle, keyword)
@@ -96,6 +111,20 @@ public class KnowledgeBaseService {
         return toResponse(article, publishedOnly);
     }
 
+    /**
+     * 学生端详情：返回已发布文章并累计浏览量。
+     */
+    @Transactional
+    public KnowledgeArticleResponseDTO detailWithView(Long id) {
+        KnowledgeArticleResponseDTO dto = getById(id, true);
+        KnowledgeArticle article = articleMapper.selectById(id);
+        if (article != null) {
+            article.setViewCount(article.getViewCount() == null ? 1 : article.getViewCount() + 1);
+            articleMapper.updateById(article);
+        }
+        return dto;
+    }
+
     @Transactional
     public KnowledgeArticleResponseDTO create(ArticleCreateDTO dto, Long authorId) {
         String status = StringUtils.hasText(dto.getStatus()) ? dto.getStatus() : "DRAFT";
@@ -104,6 +133,7 @@ public class KnowledgeBaseService {
                 .title(dto.getTitle())
                 .summary(dto.getSummary())
                 .content(dto.getContent())
+                .tags(dto.getTags())
                 .source(dto.getSource())
                 .coverUrl(dto.getCoverUrl())
                 .authorId(authorId)
@@ -128,6 +158,7 @@ public class KnowledgeBaseService {
         article.setTitle(dto.getTitle());
         article.setSummary(dto.getSummary());
         article.setContent(dto.getContent());
+        article.setTags(dto.getTags());
         article.setSource(dto.getSource());
         article.setCoverUrl(dto.getCoverUrl());
         article.setMinutes(dto.getMinutes() == null ? article.getMinutes() : dto.getMinutes());
@@ -147,10 +178,6 @@ public class KnowledgeBaseService {
         if ("PUBLISHED".equals(dto.getStatus()) && article.getPublishedAt() == null) {
             article.setPublishedAt(LocalDateTime.now());
         }
-        if (("REJECTED".equals(dto.getStatus()) || "DRAFT".equals(dto.getStatus())
-                || "OFFLINE".equals(dto.getStatus())) && article.getPublishedAt() != null) {
-            // 下线/驳回后保留发布时间作为历史，不再回写
-        }
         article.setUpdatedAt(LocalDateTime.now());
         articleMapper.updateById(article);
         return toResponse(article, false);
@@ -159,6 +186,194 @@ public class KnowledgeBaseService {
     @Transactional
     public void delete(Long id) {
         articleMapper.deleteById(id);
+        favoriteMapper.delete(new LambdaQueryWrapper<ArticleFavorite>()
+                .eq(ArticleFavorite::getArticleId, id));
+    }
+
+    // ------------------------------------------------------------------
+    // 标签
+    // ------------------------------------------------------------------
+
+    /**
+     * 已发布文章的全部标签（去重、排序），供前端筛选。
+     */
+    public List<String> listTags() {
+        List<KnowledgeArticle> articles = articleMapper.selectList(new LambdaQueryWrapper<KnowledgeArticle>()
+                .eq(KnowledgeArticle::getStatus, "PUBLISHED")
+                .select(KnowledgeArticle::getTags)
+                .isNotNull(KnowledgeArticle::getTags));
+        Set<String> tags = new LinkedHashSet<>();
+        for (KnowledgeArticle article : articles) {
+            if (StringUtils.hasText(article.getTags())) {
+                tags.addAll(splitTags(article.getTags()));
+            }
+        }
+        return tags.stream().sorted().collect(Collectors.toList());
+    }
+
+    // ------------------------------------------------------------------
+    // 收藏
+    // ------------------------------------------------------------------
+
+    @Transactional
+    public boolean addFavorite(Long userId, Long articleId) {
+        if (isFavorited(userId, articleId)) {
+            return false;
+        }
+        // 仅可收藏已发布文章
+        getById(articleId, true);
+        favoriteMapper.insert(ArticleFavorite.builder()
+                .userId(userId)
+                .articleId(articleId)
+                .createdAt(LocalDateTime.now())
+                .build());
+        return true;
+    }
+
+    @Transactional
+    public boolean removeFavorite(Long userId, Long articleId) {
+        return favoriteMapper.delete(new LambdaQueryWrapper<ArticleFavorite>()
+                .eq(ArticleFavorite::getUserId, userId)
+                .eq(ArticleFavorite::getArticleId, articleId)) > 0;
+    }
+
+    public boolean isFavorited(Long userId, Long articleId) {
+        return favoriteMapper.selectCount(new LambdaQueryWrapper<ArticleFavorite>()
+                .eq(ArticleFavorite::getUserId, userId)
+                .eq(ArticleFavorite::getArticleId, articleId)) > 0;
+    }
+
+    public List<Long> favoriteArticleIds(Long userId) {
+        return favoriteMapper.selectList(new LambdaQueryWrapper<ArticleFavorite>()
+                        .eq(ArticleFavorite::getUserId, userId)
+                        .orderByDesc(ArticleFavorite::getCreatedAt))
+                .stream().map(ArticleFavorite::getArticleId).collect(Collectors.toList());
+    }
+
+    /**
+     * 我的收藏：仅返回已发布文章（被下线的自动不展示）。
+     */
+    public KnowledgePageResponseDTO myFavorites(Long userId, int page, int pageSize) {
+        List<Long> ids = favoriteMapper.selectList(new LambdaQueryWrapper<ArticleFavorite>()
+                        .eq(ArticleFavorite::getUserId, userId)
+                        .orderByDesc(ArticleFavorite::getCreatedAt))
+                .stream().map(ArticleFavorite::getArticleId).collect(Collectors.toList());
+        if (ids.isEmpty()) {
+            return KnowledgePageResponseDTO.builder().records(List.of()).categories(buildCategoryTree())
+                    .total(0L).page((long) page).pageSize((long) pageSize).build();
+        }
+        Page<KnowledgeArticle> pager = new Page<>(page, Math.min(pageSize, 50));
+        Page<KnowledgeArticle> result = articleMapper.selectPage(pager, new LambdaQueryWrapper<KnowledgeArticle>()
+                .in(KnowledgeArticle::getId, ids)
+                .eq(KnowledgeArticle::getStatus, "PUBLISHED")
+                .orderByDesc(KnowledgeArticle::getPublishedAt));
+        List<KnowledgeArticleResponseDTO> records = result.getRecords().stream()
+                .map(a -> toResponse(a, true)).collect(Collectors.toList());
+        return KnowledgePageResponseDTO.builder()
+                .records(records)
+                .categories(buildCategoryTree())
+                .total(result.getTotal())
+                .page(result.getCurrent())
+                .pageSize(result.getSize())
+                .build();
+    }
+
+    // ------------------------------------------------------------------
+    // 个性化推荐
+    // ------------------------------------------------------------------
+
+    /**
+     * 个性化推荐：优先推荐与用户收藏文章同分类/同标签的已发布文章；
+     * 无收藏或不足时用热门文章兜底。推荐内容一律来自已审核知识库，不伪造来源。
+     */
+    public List<KnowledgeArticleResponseDTO> recommend(Long userId, int limit) {
+        int top = Math.min(Math.max(limit, 1), 20);
+        Set<Long> excluded = new HashSet<>();
+        List<String> preferCategories = new ArrayList<>();
+        Set<String> preferTags = new HashSet<>();
+        if (userId != null) {
+            List<ArticleFavorite> favorites = favoriteMapper.selectList(new LambdaQueryWrapper<ArticleFavorite>()
+                    .eq(ArticleFavorite::getUserId, userId).orderByDesc(ArticleFavorite::getCreatedAt)
+                    .last("LIMIT 20"));
+            for (ArticleFavorite fav : favorites) {
+                KnowledgeArticle article = articleMapper.selectById(fav.getArticleId());
+                if (article == null || !"PUBLISHED".equals(article.getStatus())) {
+                    continue;
+                }
+                excluded.add(article.getId());
+                KnowledgeCategory category = categoryMapper.selectById(article.getCategoryId());
+                if (category != null) {
+                    preferCategories.add(category.getName());
+                }
+                if (StringUtils.hasText(article.getTags())) {
+                    preferTags.addAll(splitTags(article.getTags()));
+                }
+            }
+        }
+        if (!preferCategories.isEmpty() || !preferTags.isEmpty()) {
+            List<KnowledgeArticle> candidates = articleMapper.selectList(new LambdaQueryWrapper<KnowledgeArticle>()
+                    .eq(KnowledgeArticle::getStatus, "PUBLISHED")
+                    .orderByDesc(KnowledgeArticle::getViewCount)
+                    .last("LIMIT 200"));
+            List<KnowledgeArticle> scored = new ArrayList<>();
+            for (KnowledgeArticle article : candidates) {
+                if (excluded.contains(article.getId())) {
+                    continue;
+                }
+                int score = 0;
+                KnowledgeCategory category = categoryMapper.selectById(article.getCategoryId());
+                if (category != null && preferCategories.contains(category.getName())) {
+                    score += 3;
+                }
+                if (StringUtils.hasText(article.getTags())) {
+                    Set<String> tags = splitTags(article.getTags());
+                    for (String tag : preferTags) {
+                        if (tags.contains(tag)) {
+                            score += 2;
+                            break;
+                        }
+                    }
+                }
+                if (score > 0) {
+                    scored.add(article);
+                }
+            }
+            scored.sort((a, b) -> Integer.compare(
+                    scoreOf(b, preferCategories, preferTags), scoreOf(a, preferCategories, preferTags)));
+            if (!scored.isEmpty()) {
+                return scored.stream().limit(top).map(a -> toResponse(a, true)).collect(Collectors.toList());
+            }
+        }
+        // 兜底：热门已发布文章
+        List<KnowledgeArticle> hot = articleMapper.selectList(new LambdaQueryWrapper<KnowledgeArticle>()
+                .eq(KnowledgeArticle::getStatus, "PUBLISHED")
+                .orderByDesc(KnowledgeArticle::getViewCount)
+                .last("LIMIT " + top));
+        return hot.stream().map(a -> toResponse(a, true)).collect(Collectors.toList());
+    }
+
+    private int scoreOf(KnowledgeArticle article, List<String> preferCategories, Set<String> preferTags) {
+        int score = 0;
+        KnowledgeCategory category = categoryMapper.selectById(article.getCategoryId());
+        if (category != null && preferCategories.contains(category.getName())) {
+            score += 3;
+        }
+        if (StringUtils.hasText(article.getTags())) {
+            for (String tag : splitTags(article.getTags())) {
+                if (preferTags.contains(tag)) {
+                    score += 2;
+                    break;
+                }
+            }
+        }
+        return score;
+    }
+
+    private Set<String> splitTags(String tags) {
+        return Arrays.stream(tags.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**
@@ -242,6 +457,7 @@ public class KnowledgeBaseService {
                 .content(publishedOnly ? article.getContent() : article.getContent())
                 .source(article.getSource())
                 .coverUrl(article.getCoverUrl())
+                .tags(article.getTags())
                 .status(article.getStatus())
                 .viewCount(article.getViewCount())
                 .minutes(article.getMinutes())

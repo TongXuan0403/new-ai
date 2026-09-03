@@ -17,6 +17,9 @@ public class ArticleCreateDTO {
     @Size(max = 500, message = "摘要不能超过500个字符")
     private String summary;
 
+    @Size(max = 500, message = "标签不能超过500个字符")
+    private String tags;
+
     @Size(max = 100, message = "来源不能超过100个字符")
     private String source;
 

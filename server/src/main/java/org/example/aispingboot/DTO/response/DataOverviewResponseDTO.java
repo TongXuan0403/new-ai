@@ -23,6 +23,9 @@ public class DataOverviewResponseDTO {
     private Long diaryUsers;
     private Long publishedArticles;
     private Long totalViews;
+    private Long totalFavorites;
+    private Long publishedExercises;
+    private Long exerciseCompletions;
     private Long riskEvents;
     private Long riskPending;
     private Map<String, Long> riskByLevel;
