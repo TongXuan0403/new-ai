@@ -177,6 +177,17 @@
                             <span>{{ userMessage.length }}/500</span>
                         </div>
                 </div>
+                <button
+                    v-if="voiceSupported"
+                    class="voice-btn"
+                    :class="{ listening: isListening }"
+                    :disabled="isAiTyping"
+                    :aria-label="isListening ? '停止语音输入' : '开始语音输入'"
+                    :title="isListening ? '停止' : '语音输入'"
+                    @click="toggleVoiceInput"
+                >
+                    <el-icon><Microphone /></el-icon>
+                </button>
                 <el-button :disabled="!userMessage.trim() || userMessage.length > 500" type="primary" class="send-btn" @click="sendMessage">
                     <el-icon>
                         <Promotion />
@@ -230,6 +241,53 @@ const sessionList = ref([])
 const messages = ref([])
 // 定义用户输入消息
 const userMessage = ref('')
+
+// P2-4 语音输入（浏览器 Web Speech API，Chrome / Edge 可用）
+const isListening = ref(false)
+const voiceSupported = typeof window !== 'undefined' &&
+    !!((window.SpeechRecognition) || (window.webkitSpeechRecognition))
+let recognition = null
+
+const toggleVoiceInput = () => {
+    if (isListening.value) {
+        stopVoiceInput()
+        return
+    }
+    if (!voiceSupported) {
+        ElMessage.warning('当前浏览器不支持语音输入，请使用 Chrome / Edge 浏览器')
+        return
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    recognition = new SR()
+    recognition.lang = 'zh-CN'
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.onresult = (event) => {
+        let transcript = ''
+        for (let i = 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript
+        }
+        userMessage.value = (userMessage.value + transcript).slice(0, 500)
+    }
+    recognition.onerror = (event) => {
+        isListening.value = false
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            ElMessage.warning('未获得麦克风权限，请在浏览器中允许后重试')
+        }
+    }
+    recognition.onend = () => {
+        isListening.value = false
+    }
+    recognition.start()
+    isListening.value = true
+}
+
+const stopVoiceInput = () => {
+    if (recognition) {
+        recognition.stop()
+    }
+    isListening.value = false
+}
 // 定义AI助手是否正在输入
 const isAiTyping = ref(false)
 // 当前进行中的 SSE 控制器，组件卸载时用于中止
@@ -1078,6 +1136,62 @@ onBeforeUnmount(() => {
                 border: none !important;
                 box-shadow: 0 6px 20px rgba(251, 146, 60, 0.25);
                 transition: all 0.3s ease;
+            }
+            .voice-btn {
+                width: 46px;
+                height: 46px;
+                align-self: flex-end;
+                margin-bottom: 2px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                border: 1px solid #e5e7eb;
+                background: #fff;
+                color: #6b7280;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 18px;
+
+                &:hover {
+                    color: #4A90E2;
+                    border-color: #4A90E2;
+                }
+
+                &.listening {
+                    background: #fee2e2;
+                    border-color: #ef4444;
+                    color: #ef4444;
+                    animation: pulse 1.2s infinite;
+                }
+
+                &:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.5;
+                }
+            }
+
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+                70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+            }
+
+            // 移动端适配（P2-4）
+            @media (max-width: 640px) {
+                .chat-input {
+                    padding: 12px;
+                    flex-wrap: wrap;
+                }
+
+                .input-container {
+                    min-width: 0;
+                }
+
+                .send-btn {
+                    width: 52px;
+                    height: 52px;
+                }
             }
 
         }

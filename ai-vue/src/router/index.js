@@ -42,6 +42,30 @@ const backendRoutes = [
                     title: '情绪日志',
                     icon: 'User'
                 }
+            },
+            {
+                path: 'report',
+                component: () => import('@/views/report.vue'),
+                meta: {
+                    title: '校园报告',
+                    icon: 'DataLine'
+                }
+            },
+            {
+                path: 'appointments',
+                component: () => import('@/views/appointments.vue'),
+                meta: {
+                    title: '预约管理',
+                    icon: 'Calendar'
+                }
+            },
+            {
+                path: 'growth-plans',
+                component: () => import('@/views/growthPlansAdmin.vue'),
+                meta: {
+                    title: '成长计划',
+                    icon: 'TrendCharts'
+                }
             }
         ]
     },
@@ -92,6 +116,14 @@ const frontendRoutes = [
                 path: 'knowledge/article/:id',
                 component: () => import('@/views/articleDetail.vue'),
                 props: true
+            },
+            {
+                path: 'counseling',
+                component: () => import('@/views/counseling.vue')
+            },
+            {
+                path: 'growth-plans',
+                component: () => import('@/views/growthPlans.vue')
             }
         ]
     },

@@ -35,3 +35,39 @@ export const getKnowledgeList = (params) => {
 export const getKnowledgeDetail = (articleId) => {
     return service.get(`/knowledge/article/${articleId}`)
 }
+
+// ---------- P2：心理中心预约/转介 ----------
+
+export const getCounselingResources = () => {
+    return service.get('/counseling/resources')
+}
+
+export const createAppointment = (data) => {
+    return service.post('/counseling/appointments', data)
+}
+
+export const getMyAppointments = () => {
+    return service.get('/counseling/appointments/my')
+}
+
+export const cancelAppointment = (id) => {
+    return service.delete(`/counseling/appointments/${id}`)
+}
+
+// ---------- P2：主题化成长计划 ----------
+
+export const getGrowthPlans = (params) => {
+    return service.get('/growth-plan/page', { params })
+}
+
+export const getGrowthPlanDetail = (id) => {
+    return service.get(`/growth-plan/${id}`)
+}
+
+export const getMyPlans = () => {
+    return service.get('/growth-plan/my')
+}
+
+export const updatePlanProgress = (id, data) => {
+    return service.put(`/growth-plan/${id}/progress`, data)
+}

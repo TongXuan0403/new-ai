@@ -72,3 +72,59 @@ export function getAnalyticsOverview() {
 export function logout() {
     return service.post('/user/logout')
 }
+
+// ---------- P2：匿名校园报告 ----------
+
+export function getCampusReport() {
+    return service.get('/data-analytics/campus-report')
+}
+
+// ---------- P2：心理资源管理 ----------
+
+export function getAdminResources(keyword) {
+    return service.get('/counseling/resources/admin/list', { params: { keyword } })
+}
+
+export function createResource(data) {
+    return service.post('/counseling/resources', data)
+}
+
+export function updateResource(id, data) {
+    return service.put(`/counseling/resources/${id}`, data)
+}
+
+export function deleteResource(id) {
+    return service.delete(`/counseling/resources/${id}`)
+}
+
+// ---------- P2：预约管理 ----------
+
+export function getAppointmentPage(params) {
+    return service.get('/counseling/appointments/admin/page', { params })
+}
+
+export function updateAppointmentStatus(id, data) {
+    return service.put(`/counseling/appointments/${id}/status`, data)
+}
+
+// ---------- P2：成长计划管理 ----------
+
+export function getAdminGrowthPlans(params) {
+    return service.get('/growth-plan/page', { params })
+}
+
+export function createGrowthPlan(data) {
+    return service.post('/growth-plan', data)
+}
+
+export function updateGrowthPlan(id, data) {
+    return service.put(`/growth-plan/${id}`, data)
+}
+
+export function updateGrowthPlanStatus(id, data) {
+    return service.put(`/growth-plan/${id}/status`, data)
+}
+
+export function deleteGrowthPlan(id) {
+    return service.delete(`/growth-plan/${id}`)
+}
