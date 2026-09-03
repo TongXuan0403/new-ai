@@ -23,6 +23,9 @@ public class SecurityConfig {
             "/api/user/login",
             "/api/user/add",
             "/api/knowledge/**",
+            "/api/counseling/resources",
+            "/api/growth-plan/page",
+            "/api/growth-plan/{id}",
             "/uploads/**",
             "/api/file/upload"
     };

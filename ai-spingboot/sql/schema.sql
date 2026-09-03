@@ -115,5 +115,78 @@ CREATE TABLE `emotion_diary` (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- 校验：应返回 6
+-- 7. 心理中心资源表（P2：学校心理中心预约/转介）
+DROP TABLE IF EXISTS `counseling_resource`;
+CREATE TABLE `counseling_resource` (
+  `id`            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '资源ID',
+  `name`          VARCHAR(100) NOT NULL COMMENT '资源名称',
+  `resource_type` VARCHAR(30)  NOT NULL DEFAULT 'SCHOOL' COMMENT '类型 SCHOOL校内 HOTLINE热线 LOCAL本地资源',
+  `phone`         VARCHAR(50)  DEFAULT NULL COMMENT '联系电话',
+  `address`       VARCHAR(255) DEFAULT NULL COMMENT '地址',
+  `work_time`     VARCHAR(100) DEFAULT NULL COMMENT '服务时间',
+  `description`   VARCHAR(500) DEFAULT NULL COMMENT '说明',
+  `sort_no`       INT          NOT NULL DEFAULT 0 COMMENT '排序号，越小越靠前',
+  `enabled`       TINYINT      NOT NULL DEFAULT 1 COMMENT '是否启用 0否 1是',
+  `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_resource_type` (`resource_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='心理中心资源表';
+
+-- 8. 预约申请表（P2）
+DROP TABLE IF EXISTS `appointment_request`;
+CREATE TABLE `appointment_request` (
+  `id`               BIGINT       NOT NULL AUTO_INCREMENT COMMENT '预约ID',
+  `user_id`          BIGINT       NOT NULL COMMENT '用户ID',
+  `user_name`        VARCHAR(50)  DEFAULT NULL COMMENT '用户名（冗余）',
+  `resource_id`      BIGINT       NOT NULL COMMENT '资源ID',
+  `resource_name`    VARCHAR(100) DEFAULT NULL COMMENT '资源名称（冗余）',
+  `appointment_date` DATE         DEFAULT NULL COMMENT '期望预约日期',
+  `appointment_time` VARCHAR(50)  DEFAULT NULL COMMENT '期望时段',
+  `reason`           VARCHAR(500) DEFAULT NULL COMMENT '预约原因',
+  `contact`          VARCHAR(100) DEFAULT NULL COMMENT '联系方式',
+  `status`           TINYINT      NOT NULL DEFAULT 0 COMMENT '状态 0待处理 1已确认 2已取消 3已完成',
+  `remark`           VARCHAR(500) DEFAULT NULL COMMENT '处理备注',
+  `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_appointment_user` (`user_id`),
+  KEY `idx_appointment_resource` (`resource_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='预约申请表';
+
+-- 9. 主题化成长计划表（P2）
+DROP TABLE IF EXISTS `growth_plan`;
+CREATE TABLE `growth_plan` (
+  `id`            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '计划ID',
+  `title`         VARCHAR(200) NOT NULL COMMENT '计划标题',
+  `summary`       VARCHAR(500) DEFAULT NULL COMMENT '摘要',
+  `theme`         VARCHAR(50)  DEFAULT NULL COMMENT '主题（如 情绪、睡眠、人际、压力）',
+  `content`       MEDIUMTEXT   COMMENT '计划正文（Markdown/富文本）',
+  `duration_days` INT          DEFAULT NULL COMMENT '建议周期（天）',
+  `reviewer`      VARCHAR(50)  DEFAULT NULL COMMENT '审核人（专业审核）',
+  `reviewed_at`   DATETIME     DEFAULT NULL COMMENT '审核时间',
+  `status`        TINYINT      NOT NULL DEFAULT 0 COMMENT '状态 0草稿 1已发布 2已下线',
+  `view_count`    INT          NOT NULL DEFAULT 0 COMMENT '浏览次数',
+  `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_plan_theme` (`theme`),
+  KEY `idx_plan_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='主题化成长计划表';
+
+-- 10. 成长计划进度表（P2）
+DROP TABLE IF EXISTS `growth_plan_progress`;
+CREATE TABLE `growth_plan_progress` (
+  `id`           BIGINT      NOT NULL AUTO_INCREMENT COMMENT '进度ID',
+  `user_id`      BIGINT      NOT NULL COMMENT '用户ID',
+  `plan_id`      BIGINT      NOT NULL COMMENT '计划ID',
+  `progress`     INT         NOT NULL DEFAULT 0 COMMENT '完成进度 0-100',
+  `completed`    TINYINT     NOT NULL DEFAULT 0 COMMENT '是否完成 0否 1是',
+  `completed_at` DATETIME    DEFAULT NULL COMMENT '完成时间',
+  `updated_at`   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_plan_user` (`user_id`, `plan_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成长计划进度表';
+
+-- 校验：应返回 10
 -- SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='mental_health_assistant';
