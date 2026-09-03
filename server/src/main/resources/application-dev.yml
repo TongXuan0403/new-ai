@@ -1,0 +1,14 @@
+# 本地开发环境：敏感值通过环境变量注入，冒号后仅为本地占位默认值
+server:
+  port: ${SERVER_PORT:1235}
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:mental_health}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:replace-me}
+
+jwt:
+  # 本地开发占位密钥，生产必须通过 JWT_SECRET 注入长随机串
+  secret: ${JWT_SECRET:local-dev-secret-please-change-to-a-long-random-string-0123456789}

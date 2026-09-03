@@ -1,0 +1,60 @@
+package org.example.aispingboot.entity;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@TableName("knowledge_article")
+public class KnowledgeArticle {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    @TableField("category_id")
+    private Long categoryId;
+
+    private String title;
+
+    private String summary;
+
+    private String content;
+
+    private String source;
+
+    @TableField("cover_url")
+    private String coverUrl;
+
+    @TableField("author_id")
+    private Long authorId;
+
+    private String tags;
+
+    private String status;
+
+    @TableField("audit_remark")
+    private String auditRemark;
+
+    @TableField("view_count")
+    private Integer viewCount;
+
+    private Integer minutes;
+
+    @TableField("published_at")
+    private LocalDateTime publishedAt;
+
+    @TableField("created_at")
+    private LocalDateTime createdAt;
+
+    @TableField("updated_at")
+    private LocalDateTime updatedAt;
+}
