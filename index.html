@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex-AI 心理健康助手 Demo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <div class="brand-mark">C</div>
+          <div>
+            <strong>Codex-AI</strong>
+            <span>心理健康助手</span>
+          </div>
+        </div>
+
+        <nav class="nav" id="nav">
+          <button class="nav-item active" data-view="home" type="button">
+            <span class="nav-icon">⌂</span>
+            首页
+          </button>
+          <button class="nav-item" data-view="chat" type="button">
+            <span class="nav-icon">◐</span>
+            倾诉
+          </button>
+          <button class="nav-item" data-view="diary" type="button">
+            <span class="nav-icon">✎</span>
+            日记
+          </button>
+          <button class="nav-item" data-view="library" type="button">
+            <span class="nav-icon">□</span>
+            知识库
+          </button>
+          <button class="nav-item" data-view="admin" type="button">
+            <span class="nav-icon">≡</span>
+            管理端
+          </button>
+        </nav>
+
+        <div class="resource-card">
+          <p>需要立即帮助</p>
+          <strong>120 / 110 / 12356</strong>
+          <span>校内心理中心：工作日 09:00-18:00</span>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">MVP 静态演示</p>
+            <h1 id="pageTitle">今天从哪里开始？</h1>
+          </div>
+          <div class="user-pill">
+            <span class="status-dot"></span>
+            已登录：林同学
+          </div>
+        </header>
+
+        <section class="notice" id="consentNotice">
+          <div>
+            <strong>使用边界确认</strong>
+            <p>本产品提供心理支持和自助管理，不替代专业诊疗或紧急救援。请确认已满 18 岁，并同意处理必要的敏感个人信息。</p>
+          </div>
+          <button class="primary-button" id="agreeButton" type="button">确认并进入</button>
+        </section>
+
+        <section class="view active" id="homeView" aria-labelledby="pageTitle">
+          <div class="home-grid">
+            <article class="hero-panel">
+              <div>
+                <p class="eyebrow">今日状态</p>
+                <h2>总体状态 6.8 / 10</h2>
+                <p>近 7 天记录显示状态略有回升。这里仅展示变化，不推断诊断结论。</p>
+              </div>
+              <div class="mood-ring" aria-label="总体状态 6.8 分">
+                <span>6.8</span>
+              </div>
+            </article>
+
+            <article class="quick-panel">
+              <button class="flow-card accent" data-action="start-chat" type="button">
+                <span>开始倾诉</span>
+                <strong>把一件事慢慢说清楚</strong>
+              </button>
+              <button class="flow-card" data-action="start-diary" type="button">
+                <span>记录情绪</span>
+                <strong>花一分钟留下今天的线索</strong>
+              </button>
+            </article>
+          </div>
+
+          <div class="content-grid">
+            <section class="panel">
+              <div class="section-heading">
+                <h2>最近摘要</h2>
+                <button class="text-button" data-view-target="diary" type="button">查看日记</button>
+              </div>
+              <div class="summary-list">
+                <div>
+                  <span class="tag calm">平静</span>
+                  <strong>完成了一次睡前记录</strong>
+                  <p>触发事件：小组汇报临近；身体感受：肩颈紧绷。</p>
+                </div>
+                <div>
+                  <span class="tag focus">练习</span>
+                  <strong>3 分钟落地呼吸</strong>
+                  <p>适合焦虑升高时，把注意力带回身体和环境。</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-heading">
+                <h2>推荐阅读</h2>
+                <button class="text-button" data-view-target="library" type="button">进入知识库</button>
+              </div>
+              <div class="article-row">
+                <div class="article-thumb">睡眠</div>
+                <div>
+                  <strong>考试周睡不着时，先降低入睡压力</strong>
+                  <p>5 分钟阅读 · 已审核</p>
+                </div>
+              </div>
+              <div class="article-row">
+                <div class="article-thumb green">关系</div>
+                <div>
+                  <strong>冲突之后如何表达边界</strong>
+                  <p>4 分钟阅读 · 已审核</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="chatView" aria-label="倾诉对话">
+          <div class="chat-layout">
+            <aside class="session-list">
+              <div class="section-heading compact">
+                <h2>会话</h2>
+                <button class="icon-button" id="newSessionButton" type="button" title="新建会话">＋</button>
+              </div>
+              <button class="session-item active" type="button">
+                <strong>新的倾诉</strong>
+                <span>今天 10:21 · 焦虑与压力</span>
+              </button>
+              <button class="session-item" type="button">
+                <strong>汇报前的紧张</strong>
+                <span>昨天 22:08 · 学业与考试</span>
+              </button>
+              <button class="session-item" type="button">
+                <strong>睡前反复想事</strong>
+                <span>周二 23:40 · 睡眠与精力</span>
+              </button>
+            </aside>
+
+            <div class="chat-panel">
+              <div class="chat-boundary">
+                AI 心理支持，不替代专业诊疗或紧急救援。
+                <button class="text-button danger-link" id="showCrisisButton" type="button">需要紧急帮助</button>
+              </div>
+
+              <div class="crisis-card hidden" id="crisisCard">
+                <div>
+                  <strong>如果你正处于立即危险，请优先联系现实支持</strong>
+                  <p>可拨打 120、110、12356，或联系学校心理中心、辅导员、可信任的人。这里不会承诺已通知他人。</p>
+                </div>
+                <div class="crisis-actions">
+                  <button type="button">复制求助信息</button>
+                  <button type="button">查看资源</button>
+                </div>
+              </div>
+
+              <div class="prompt-chips" id="promptChips">
+                <button type="button">我现在很焦虑</button>
+                <button type="button">我想把一件事说清楚</button>
+                <button type="button">我睡不着</button>
+              </div>
+
+              <div class="messages" id="messages">
+                <div class="message ai">
+                  <p>你好，我在。你可以从最困扰你的那一小段开始说，也可以只说现在身体里最明显的感受。</p>
+                </div>
+              </div>
+
+              <form class="composer" id="chatForm">
+                <input id="chatInput" type="text" placeholder="输入你想说的话" autocomplete="off" />
+                <button class="primary-button" type="submit">发送</button>
+              </form>
+
+              <div class="feedback-bar hidden" id="feedbackBar">
+                <span>这次回应有帮助吗？</span>
+                <button type="button">有帮助</button>
+                <button type="button">一般</button>
+                <button type="button">没帮助</button>
+                <button class="text-button" data-view-target="diary" type="button">记录本次感受</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="diaryView" aria-label="情绪日记">
+          <div class="diary-grid">
+            <form class="panel diary-form" id="diaryForm">
+              <div class="section-heading">
+                <h2>新建日记</h2>
+                <span class="muted">必填：主情绪、总体状态</span>
+              </div>
+
+              <label>
+                主情绪
+                <div class="emotion-options">
+                  <button class="selected" type="button">平静</button>
+                  <button type="button">焦虑</button>
+                  <button type="button">低落</button>
+                  <button type="button">愤怒</button>
+                  <button type="button">疲惫</button>
+                </div>
+              </label>
+
+              <label>
+                总体状态：<span id="scoreLabel">7</span> / 10
+                <input id="scoreRange" type="range" min="1" max="10" value="7" />
+              </label>
+
+              <label>
+                触发事件
+                <textarea placeholder="例如：明天要小组展示，担心自己说不好。"></textarea>
+              </label>
+
+              <div class="form-row">
+                <label>
+                  睡眠
+                  <select>
+                    <option>一般</option>
+                    <option>较好</option>
+                    <option>较差</option>
+                  </select>
+                </label>
+                <label>
+                  精力
+                  <select>
+                    <option>中等</option>
+                    <option>充足</option>
+                    <option>不足</option>
+                  </select>
+                </label>
+              </div>
+
+              <button class="primary-button" type="submit">保存日记</button>
+              <p class="save-note hidden" id="saveNote">已保存模拟记录，并更新右侧趋势。</p>
+            </form>
+
+            <div class="panel trend-panel">
+              <div class="section-heading">
+                <h2>近 7 天趋势</h2>
+                <span class="muted">总体状态：1 很差，10 很好</span>
+              </div>
+              <div class="bar-chart" id="barChart" aria-label="近 7 天总体状态趋势"></div>
+              <div class="summary-list">
+                <div>
+                  <span class="tag calm">观察</span>
+                  <strong>记录频率：5 / 7 天</strong>
+                  <p>连续记录能帮助你看到波动，但单日变化不代表结论。</p>
+                </div>
+                <div>
+                  <span class="tag focus">推荐</span>
+                  <strong>今晚适合做 3 分钟落地呼吸</strong>
+                  <p>从脚底触地感、室内声音和呼吸节奏开始。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="libraryView" aria-label="知识库">
+          <div class="library-layout">
+            <div class="panel">
+              <div class="section-heading">
+                <h2>知识库</h2>
+                <input class="search-input" type="search" placeholder="搜索文章" />
+              </div>
+              <div class="category-tabs">
+                <button class="active" type="button">全部</button>
+                <button type="button">压力</button>
+                <button type="button">睡眠</button>
+                <button type="button">关系</button>
+                <button type="button">自助练习</button>
+              </div>
+              <div class="article-list" id="articleList"></div>
+            </div>
+
+            <article class="panel article-detail" id="articleDetail">
+              <span class="tag focus">已审核</span>
+              <h2>考试周睡不着时，先降低入睡压力</h2>
+              <p>当人越努力要求自己立刻睡着，大脑越容易保持警觉。可以先把目标从“必须睡着”调成“让身体休息十分钟”。</p>
+              <p>如果失眠持续影响学习生活，建议联系校内心理中心或医生获得专业评估。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="adminView" aria-label="管理端">
+          <div class="admin-grid">
+            <section class="metric-row">
+              <div class="metric-card">
+                <span>活跃用户</span>
+                <strong>1,284</strong>
+                <p>较上周 +8.4%</p>
+              </div>
+              <div class="metric-card">
+                <span>完成日记</span>
+                <strong>3,692</strong>
+                <p>近 30 天</p>
+              </div>
+              <div class="metric-card">
+                <span>帮助度正向</span>
+                <strong>76%</strong>
+                <p>对话后反馈</p>
+              </div>
+              <div class="metric-card warning">
+                <span>风险待处理</span>
+                <strong>12</strong>
+                <p>仅展示脱敏摘要</p>
+              </div>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <h2>风险事件中心</h2>
+                <button class="secondary-button" type="button">导出脱敏报表</button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>时间</th>
+                    <th>等级</th>
+                    <th>摘要</th>
+                    <th>规则版本</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>09-03 09:42</td>
+                    <td><span class="risk high">高</span></td>
+                    <td>表达强烈无助感，已展示危机卡</td>
+                    <td>risk-v0.3</td>
+                    <td>待复核</td>
+                  </tr>
+                  <tr>
+                    <td>09-02 22:13</td>
+                    <td><span class="risk mid">中</span></td>
+                    <td>睡眠与焦虑持续升高</td>
+                    <td>risk-v0.3</td>
+                    <td>已关闭</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="panel table-panel">
+              <div class="section-heading">
+                <h2>文章审核</h2>
+                <button class="primary-button" type="button">新建文章</button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>标题</th>
+                    <th>分类</th>
+                    <th>状态</th>
+                    <th>更新时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>考试周睡不着时，先降低入睡压力</td>
+                    <td>睡眠</td>
+                    <td>已发布</td>
+                    <td>09-01</td>
+                  </tr>
+                  <tr>
+                    <td>关系冲突后的边界表达</td>
+                    <td>关系</td>
+                    <td>待审核</td>
+                    <td>09-03</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
