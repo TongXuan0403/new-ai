@@ -1,147 +1,85 @@
-# Codex-AI 心理健康助手（MVP）
+# AI 心理健康助手 · 2.0
 
-> 面向 18 岁及以上大学生的 AI 心理支持与自助管理平台 —— 情绪倾诉、情绪日记、知识库与后台管理。
->
-> ⚠️ **重要声明**：本产品提供 AI 心理支持与自助管理，**不提供诊断、治疗、用药建议或紧急救援**。如处于立即危险，请拨打 120 / 110 / 12356 或联系可信任的人。
+> 基于 **Spring AI + MCP** 的 AI 心理支持与自助管理平台（前后端分离架构）。
+> 面向 18 岁及以上大学生的情绪倾诉、AI 心理对话、情绪日记与心理健康知识库。
 
-| 状态 | 技术栈 | 版本 |
-| --- | --- | --- |
-| ✅ P0 安全可试用 MVP 已完成 | Spring Boot · Vue 3 · MySQL | V1.0 |
-| ✅ P1 提高连续使用已完成 | 收藏/推荐 · 自助练习 · 配置版本化 | V1.1 |
+> ⚠️ **重要声明**：本产品提供 AI 心理支持与自助管理工具，**不提供诊断、治疗、用药建议或紧急救援**。如处于立即危险，请拨打 120 / 110 / 12356 或联系可信任的人。
+
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.15-6DB33F?logo=spring&logoColor=white)
+![Spring AI](https://img.shields.io/badge/Spring%20AI-1.1.8-6DB33F)
+![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vuedotjs&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
+![Java](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)
 
 ---
 
+## 版本说明
+
+| 版本 | 分支 | 说明 |
+| --- | --- | --- |
+| **V2.0（当前主干）** | `main` | **前后端独立工程**（`ai-spingboot` + `ai-vue`），引入 **Spring AI ChatClient + MCP（模型上下文协议）**，AI 对话可实时检索心理健康知识库，并新增后台数据分析 / 情绪日志管理等能力 |
+| V1.x（MVP，已归档） | `v1` | 单体结构（`server` / `web` 两个目录），含 P0 安全 MVP 与 P1 连续使用增强；代码与历史已完整保留在 `v1` 分支 |
+
+## 仓库结构
+
+```
+├── ai-spingboot/        # 后端服务（Spring Boot 3.5 + Spring AI + MyBatis-Plus）
+│   ├── src/main/java/   # Java 源码（controller / service / mapper / config / AiService）
+│   ├── src/main/resources/  # 配置与知识库资源
+│   └── sql/schema.sql   # 建表脚本（MySQL 8.0）
+├── ai-vue/              # 前端应用（Vue 3 + Vite + Element Plus + Pinia）
+│   └── src/             # 页面 / 组件 / 路由 / 状态 / API 封装
+└── docs/                # 产品设计与技术文档（含 V1 历史归档）
+```
+
 ## 功能特性
 
-- **账号与同意**：注册 / 登录 / 退出、首次使用年龄确认与单独同意门、授权撤回、账号删除申请、管理员分权。
-- **AI 对话与会话**：二阶段流程（落库 + SSE 流式）、会话管理、历史回看、帮助度反馈、自动标题、对话边界控制（不诊断 / 不给药 / 不承诺 / 不空泛安慰）。
-- **情绪日记**：新增 / 查看 / 编辑 / 删除，7 / 30 天趋势，趋势解释克制（只描述变化、不推断疾病）。
-- **知识库**：分类树 + 文章分页、富文本安全渲染（前端剥标签 + 转义）、内容审核流程（草稿 / 待审 / 已发布 / 下线）、**关键词搜索 + 标签筛选、文章收藏、个性化推荐（仅来自已审核内容，热门兜底）**。
-- **管理后台**：运营概览（聚合脱敏）、知识内容管理、危机资源配置、风险事件中心、审计日志、**自助练习库维护、配置版本管理**。
-- **自助练习**：轻量练习库（呼吸 / 拆解 / 纸笔减负等）、练习步骤、完成标记与完成记录、练习后感受。
-- **配置版本化**：提示词 / 模型 / 风险规则后台版本管理（草稿 / 生效 / 停用，每类仅一条生效），运行期生效并写入消息与风险事件可追溯。
-- **安全与危机**：三重风险识别（输入前规则 / 调用前检测 / 回复后输出审核）、危机卡强制组件（120 / 110 / 12356 / 校内资源）、危机场景独立提示词。
-- **隐私与合规**：敏感数据最小化、单独同意与撤回、本人数据导出、删除申请、敏感操作审计日志。
+- **用户认证**：注册 / 登录 / 登出 / 当前用户，JWT 无状态鉴权，普通用户与管理员双角色。
+- **AI 心理对话**：基于 Spring AI ChatClient（DeepSeek 兼容接口）+ 会话窗口记忆（30 条），支持 **SSE 流式输出**；知识库缺失或接口异常时自动降级为本地兜底回复。
+- **知识库检索增强（RAG）**：知识库通过 `@Tool` 暴露为 **MCP 工具**（搜索 / 详情 / 分类），AI 在对话中自主调用检索，回答优先引用已发布文章。
+- **情绪日记**：记录情绪评分、主导情绪、诱因与压力等级，支持管理端分页查看与删除。
+- **知识文章管理**：分类 + 文章分页检索、富文本编辑（wangeditor）、封面图上传、发布 / 下线状态流转。
+- **数据分析**：运营概览聚合（用户 / 会话 / 消息 / 情绪分布），前端 ECharts 可视化。
+- **会话管理**：会话列表（用户看自己、管理员看全部）、消息回看、删除、会话级情绪分析。
 
 ## 技术栈
 
 | 层 | 技术 |
 | --- | --- |
-| 前端 | Vue 3 + Vite + Vue Router + Pinia + Axios |
-| 后端 | Spring Boot 3.4.x · Spring Security · Java 21 |
-| ORM | MyBatis-Plus 3.5.7 |
-| 认证 | JWT（Spring Security + Java-JWT） |
-| 数据库 | MySQL 8.0 |
-| 流式 | Spring MVC `SseEmitter`（SSE，`risk → delta* → done/error`） |
-| AI | 硅基流动 OpenAI 兼容接口（无 Key 时本地安全兜底回复，不阻塞 MVP） |
+| 后端 | Spring Boot 3.5.15 · Java 17 · Spring Security + JWT（auth0 java-jwt） |
+| AI | Spring AI 1.1.8（OpenAI 兼容接入 DeepSeek）· ChatClient · MCP Server（STREAMABLE） |
+| ORM | MyBatis-Plus 3.5.7 · MySQL 8.0（`mental_health_assistant`） |
+| 流式 | Reactor `Flux<ServerSentEvent>`（SSE：`message` → `done` / `error`） |
+| 前端 | Vue 3.5 · Vite 7 · Element Plus 2.13 · Pinia · Vue Router 4 · ECharts 6 · wangeditor 5 |
+| 工具 | Lombok · Hutool · spring-boot-starter-validation |
 
-## 快速开始
-
-### 环境要求
-
-- JDK 21、Maven 3.9+
-- Node.js 18+（推荐 20/24）
-- MySQL 8.0
-
-### 1. 初始化数据库
+## 快速开始（概览）
 
 ```bash
-mysql -uroot -p < sql/V1__core_tables.sql
-mysql -uroot -p < sql/V2__p0_tables.sql
-mysql -uroot -p < sql/V3__seed_data.sql
-mysql -uroot -p < sql/V4__fix_user_consent_unique.sql   # 唯一键修复（含全新安装）
-mysql -uroot -p < sql/V5__p1_tables.sql                 # P1：收藏/练习/配置版本表 + 种子数据
-mysql -uroot -p < sql/V6__p1_ai_model_widen.sql        # P1：ai_model 加宽（版本可追溯）
-```
+# 1. 初始化数据库
+mysql -uroot -p < ai-spingboot/sql/schema.sql
 
-### 2. 启动后端（端口 1235）
-
-```bash
-cd server
-# 按需注入环境变量；本地默认 root/123456
-$env:MYSQL_PASSWORD='123456'    # PowerShell
-export MYSQL_PASSWORD='123456'  # Linux / macOS
+# 2. 启动后端（端口 1236）
+cd ai-spingboot
 mvn spring-boot:run
-```
 
-可选环境变量：`MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_DATABASE` / `JWT_SECRET`（生产必换）/ `AI_API_KEY`（不配置时使用本地兜底回复）。
-
-### 3. 启动前端（端口 5173，已代理 `/api` → `localhost:1235`）
-
-```bash
-cd web
+# 3. 启动前端（端口 5173，已代理 /api → localhost:1236）
+cd ai-vue
 npm install
 npm run dev
 ```
 
-打开 <http://localhost:5173>。
+> 种子数据（`admin` / `demo` 账号，密码 `123456`，知识分类与文章）由后端启动时自动写入。
 
-### 演示账号
+## 文档
 
-| 账号 | 密码 | 角色 |
-| --- | --- | --- |
-| `admin` | `Admin@123` | 管理员 |
-| `demo` | `Demo@123` | 普通学生用户 |
-
-## 项目结构
-
-```
-├── docs/             # 产品设计文档、技术方案、实施进度看板
-├── demo/             # 静态 MVP 演示
-├── scripts/          # 自动化测试脚本
-│   ├── smoke_test.py            # P0 接口冒烟测试（32 项）
-│   ├── security_regression_test.py  # 安全回归测试（同意门/危机/越权/XSS/审计）
-│   └── p1_test.py                  # P1 接口冒烟测试（收藏/练习/配置版本化/越权）
-├── server/           # Spring Boot 后端
-│   └── src/main/java/org/example/aispingboot/
-│       ├── controller/   # REST 接口
-│       ├── service/      # 业务与安全逻辑（风险检测、审计、隐私…）
-│       ├── mapper/       # MyBatis-Plus Mapper
-│       ├── entity/       # 数据实体
-│       └── util/         # JWT / 安全上下文
-├── sql/              # 建表与数据脚本（V1-V6）
-└── web/              # Vue 3 前端
-    └── src/
-        ├── views/    # 页面（登录、对话、日记、知识库、自助练习、隐私、管理端…）
-        ├── stores/   # Pinia（auth / consent）
-        └── api/      # 接口封装
-```
-
-## 测试
-
-服务端运行后执行：
-
-```bash
-python scripts/smoke_test.py              # P0 接口冒烟：认证/同意/日记/会话/SSE/风险/管理端/隐私
-python scripts/security_regression_test.py # 安全回归：同意门、高风险表达、医疗/越狱/保密边界、XSS、横向越权、审计
-python scripts/p1_test.py                   # P1 接口冒烟：标签/收藏/推荐、练习完成、配置版本化 + 越权
-```
-
-当前状态：P0 冒烟 32/32 全部通过；安全回归 8 项全部通过；P1 冒烟全部通过（含收藏用户隔离、普通用户管理接口 403、版本唯一性与生效互斥）。
-
-## 安全与合规设计
-
-- **风险识别**：规则（危机 / 预警 / 关注三级）+ 输出审核组合；危机场景不调用模型，只输出稳定安全引导并强制展示危机卡。
-- **越权防护**：会话 / 日记 / 导出均按 `userId` 归属校验，普通用户访问管理接口返回 403；管理端默认只返回聚合与脱敏数据。
-- **XSS**：知识库富文本在前端剥除全部 HTML 标签并以 Vue 转义渲染，全站无 `v-html` 渲染点。
-- **审计**：管理端文章 / 危机资源增改删、练习、配置版本增改生效、用户数据导出均写审计日志（`operator / action / target`）。
-- **同意**：`user_consent` 通过生成列 `active_key` 保证「同一版本集每用户仅一条有效同意」，撤回记录可无限保留（V4 修复）。
-- **收藏隔离**：收藏接口独立于公开知识库路径，仅本人可见；用户间不可互读 / 互删。
-- **版本可追溯**：对话消息 `ai_model` 记录「模型|提示词版本|规则版本」，风险事件记录规则 / 模型版本号，便于运营回溯。
-
-## 路线图
-
-- ✅ **P0 安全可试用 MVP**（已完成）：设计文档、技术方案、静态演示、后端接口、Vue 工程化、SSE 流式、安全回归。
-- ✅ **P1 提高连续使用**（已完成）：对话帮助度反馈聚合、日记编辑/删除/导出、文章搜索/标签/收藏/推荐、自助练习库与完成记录、提示词/模型/规则版本化。
-- ⏳ **P2 验证后扩展**（未开始）：学校心理中心预约 / 转介、专业审核成长计划、语音输入与无障碍、匿名聚合校园报告。
-
-## 上线前待办
-
-- 生产部署与 `JWT_SECRET` 强密钥注入
-- 第三方模型供应商、数据地域、日志保留与备案合规评审
-- 校内危机资源联系方式核验配置
-- Apifox 接口文档与自动化回归对接
+- [后端服务文档（ai-spingboot）](ai-spingboot/README.md)
+- [前端应用文档（ai-vue）](ai-vue/README.md)
+- [产品设计文档](docs/产品设计文档.md)
+- [技术方案](docs/技术方案.md)
+- [实施进度看板](docs/实施进度看板.html)
 
 ## License
 
-本项目为内部 MVP 演示项目，代码仅用于学习与验证用途。心理支持功能不构成医疗建议。
+本项目为内部学习与验证用途的演示项目，代码仅供学习参考。心理支持功能不构成医疗建议。

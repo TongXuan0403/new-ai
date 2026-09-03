@@ -1,21 +1,11 @@
-# Node
-node_modules/
-web/dist/
-web/*.log
-
-# Java / Maven
-server/target/
-*.class
-server/*.log
+# OS
+.DS_Store
+Thumbs.db
 
 # IDE
 .idea/
 .vscode/
 *.iml
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Env / secrets
 .env
@@ -24,3 +14,11 @@ Thumbs.db
 
 # Temp
 .preview/
+
+# Node（子工程 ai-vue/ 另有完整忽略规则）
+node_modules/
+dist/
+
+# Java / Maven（子工程 ai-spingboot/ 另有完整忽略规则）
+target/
+*.class
