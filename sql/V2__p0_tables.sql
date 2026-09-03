@@ -20,12 +20,19 @@ CREATE TABLE `user_consent` (
   `privacy_policy_version` VARCHAR(50) DEFAULT NULL COMMENT '隐私政策版本',
   `sensitive_info_version` VARCHAR(50) DEFAULT NULL COMMENT '敏感个人信息同意版本',
   `product_boundary_version` VARCHAR(50) DEFAULT NULL COMMENT '产品边界说明版本',
+  `active_key`            VARCHAR(255) GENERATED ALWAYS AS (
+    IF(`revoked_at` IS NULL,
+       CONCAT(`user_id`, '|', COALESCE(`privacy_policy_version`,''),
+              '|', COALESCE(`sensitive_info_version`,''),
+              '|', COALESCE(`product_boundary_version`,'')),
+       NULL)
+  ) STORED COMMENT '有效同意唯一键（撤回后为 NULL）',
   `consented_at`          DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '同意时间',
   `revoked_at`            DATETIME    DEFAULT NULL COMMENT '撤回时间（非空表示已撤回）',
   `created_at`            DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at`            DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_user_consent_active` (`user_id`, `privacy_policy_version`, `sensitive_info_version`, `revoked_at`),
+  UNIQUE KEY `uk_user_consent_active` (`active_key`),
   KEY `idx_consent_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户同意表';
 

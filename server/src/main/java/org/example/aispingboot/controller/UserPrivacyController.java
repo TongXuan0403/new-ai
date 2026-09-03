@@ -3,6 +3,7 @@ package org.example.aispingboot.controller;
 import org.example.aispingboot.DTO.response.PrivacyProfileResponseDTO;
 import org.example.aispingboot.common.Result;
 import org.example.aispingboot.entity.UserDeletionRequest;
+import org.example.aispingboot.service.AuditLogService;
 import org.example.aispingboot.service.UserPrivacyService;
 import org.example.aispingboot.util.SecurityUtil;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,9 +18,11 @@ import java.util.Map;
 @RequestMapping("/user/privacy")
 public class UserPrivacyController {
     private final UserPrivacyService userPrivacyService;
+    private final AuditLogService auditLogService;
 
-    public UserPrivacyController(UserPrivacyService userPrivacyService) {
+    public UserPrivacyController(UserPrivacyService userPrivacyService, AuditLogService auditLogService) {
         this.userPrivacyService = userPrivacyService;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping("/profile")
@@ -29,7 +32,9 @@ public class UserPrivacyController {
 
     @PostMapping("/export")
     public Result<Map<String, String>> export() {
-        String json = userPrivacyService.exportData(SecurityUtil.getCurrentUserId());
+        Long userId = SecurityUtil.getCurrentUserId();
+        String json = userPrivacyService.exportData(userId);
+        auditLogService.record(userId, "user", "EXPORT_USER_DATA", "user_export", userId, null);
         return Result.ok(Map.of("content", json), "导出生成成功");
     }
 

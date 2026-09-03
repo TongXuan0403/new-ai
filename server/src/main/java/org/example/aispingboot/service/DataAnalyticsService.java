@@ -44,11 +44,11 @@ public class DataAnalyticsService {
         Long activeUsers = userMapper.selectCount(new LambdaQueryWrapper<User>()
                 .eq(User::getStatus, 1).eq(User::getUserType, 1));
         Long totalSessions = sessionMapper.selectCount(null);
-        Long sessionUsers = sessionMapper.selectCount(new LambdaQueryWrapper<ConsultationSession>()
-                .groupBy(ConsultationSession::getUserId).last("HAVING COUNT(*) >= 0"));
+        Long sessionUsers = (long) sessionMapper.selectObjs(new LambdaQueryWrapper<ConsultationSession>()
+                .select(ConsultationSession::getUserId).groupBy(ConsultationSession::getUserId)).size();
         Long totalDiaries = diaryMapper.selectCount(null);
-        Long diaryUsers = diaryMapper.selectCount(new LambdaQueryWrapper<EmotionDiary>()
-                .groupBy(EmotionDiary::getUserId).last("HAVING COUNT(*) >= 0"));
+        Long diaryUsers = (long) diaryMapper.selectObjs(new LambdaQueryWrapper<EmotionDiary>()
+                .select(EmotionDiary::getUserId).groupBy(EmotionDiary::getUserId)).size();
         Long publishedArticles = articleMapper.selectCount(new LambdaQueryWrapper<KnowledgeArticle>()
                 .eq(KnowledgeArticle::getStatus, "PUBLISHED"));
         Long totalViews = articleMapper.selectCount(new LambdaQueryWrapper<KnowledgeArticle>()

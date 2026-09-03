@@ -54,7 +54,10 @@ public class CrisisResourceController {
     @PutMapping("/admin/crisis-resources/{id}")
     public Result<CrisisResourceResponseDTO> update(@PathVariable Long id, @Valid @RequestBody CrisisResourceDTO dto) {
         SecurityUtil.requireAdmin();
-        return Result.ok(crisisResourceService.update(id, dto), "资源已更新");
+        CrisisResourceResponseDTO updated = crisisResourceService.update(id, dto);
+        auditLogService.record(SecurityUtil.getCurrentUserId(), "admin", "UPDATE_CRISIS_RESOURCE",
+                "crisis_resource", id, null);
+        return Result.ok(updated, "资源已更新");
     }
 
     @DeleteMapping("/admin/crisis-resources/{id}")

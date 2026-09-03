@@ -94,7 +94,7 @@
     <div class="bar-row"><span class="label">静态 MVP 演示</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="bar-row"><span class="label">P0 后端接口</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct">100%</span></div>
     <div class="bar-row"><span class="label">Vue 工程化</span><div class="bar-track"><div class="bar-fill" style="width:100%"></div></div><span class="pct">100%</span></div>
-    <div class="bar-row"><span class="label">测试与上线</span><div class="bar-track"><div class="bar-fill warn" style="width:90%"></div></div><span class="pct">90%</span></div>
+    <div class="bar-row"><span class="label">测试与上线</span><div class="bar-track"><div class="bar-fill warn" style="width:95%"></div></div><span class="pct">95%</span></div>
   </div>
 
   <div class="card">
@@ -157,9 +157,9 @@
   </div>
 
   <div class="grid">
-    <div class="milestone"><h3>P0 安全可试用 MVP <span class="st part">收尾中</span></h3><ul>
+    <div class="milestone"><h3>P0 安全可试用 MVP <span class="st done">已完成</span></h3><ul>
       <li class="done">产品设计文档</li><li class="done">技术方案</li><li class="done">静态 MVP 演示</li>
-      <li class="done">账号登录与首次同意（后端）</li><li class="done">AI 流式对话与风险服务</li><li class="done">日记 / 知识库 / 管理端接口</li><li class="done">测试与上线验收（冒烟 32/32，待安全回归与部署）</li>
+      <li class="done">账号登录与首次同意（后端）</li><li class="done">AI 流式对话与风险服务</li><li class="done">日记 / 知识库 / 管理端接口</li><li class="done">测试与上线验收（冒烟 32/32 + 安全回归通过，待生产部署）</li>
     </ul></div>
     <div class="milestone"><h3>P1 提高连续使用 <span class="st part">部分完成</span></h3><ul>
       <li class="done">对话帮助度反馈聚合</li><li>文章搜索、标签、收藏、推荐</li><li class="done">日记编辑、删除、导出</li><li>自助练习库与完成记录</li><li>提示词 / 模型 / 规则版本化</li>
@@ -181,8 +181,9 @@
       <div class="tl-item"><div class="t">13:01</div><div class="c">SSE 修复（SseEmitter）</div></div>
       <div class="tl-item"><div class="t">13:32</div><div class="c">数据库初始化 + 冒烟 31/31</div></div>
       <div class="tl-item"><div class="t">13:40</div><div class="c">浏览器端到端联调验证</div></div>
+      <div class="tl-item"><div class="t">13:5x</div><div class="c">P0 收尾：安全回归 8 项 + 修复 4 处缺陷</div></div>
     </div>
-    <div class="warn-box">下一步（P1）：对话帮助度反馈聚合、文章搜索/标签/收藏/推荐、日记编辑/删除/导出增强、自助练习库、提示词 / 模型 / 规则版本化。</div>
+    <div class="warn-box">P0 已完成：冒烟 32/32 + 安全回归全部通过。收尾修复：危机资源 update 审计、user_consent 唯一键撞键、运营概览多用户报错、数据导出审计。剩余：生产部署 + 第三方模型合规评审。下一步（P1）：文章搜索/收藏、自助练习库、提示词 / 模型 / 规则版本化。</div>
   </div>
 
   <footer>数据口径：本看板由 AI 依据 docs 文档、demo 源码与 Git 提交自动生成，状态为当前快照，可通过定时任务持续刷新。心理支持功能不构成医疗建议。</footer>
