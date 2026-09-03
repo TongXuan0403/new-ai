@@ -15,10 +15,10 @@ Thumbs.db
 # Temp
 .preview/
 
-# Node（子工程 ai-vue/ 另有完整忽略规则）
+# Node（子工程 frontend/ 另有完整忽略规则）
 node_modules/
 dist/
 
-# Java / Maven（子工程 ai-spingboot/ 另有完整忽略规则）
+# Java / Maven（子工程 backend/ 另有完整忽略规则）
 target/
 *.class

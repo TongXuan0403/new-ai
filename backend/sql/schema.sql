@@ -1,5 +1,5 @@
 -- =====================================================================
--- 心理健康助手 ai-spingboot · 建表脚本（mental_health_assistant）
+-- 心理健康助手 backend · 建表脚本（mental_health_assistant）
 -- MySQL 8.0+ / InnoDB / utf8mb4
 -- 执行：mysql -uroot -p < schema.sql
 -- 种子数据（admin/demo 用户、分类、文章）由后端 DataInitializer 启动时自动写入

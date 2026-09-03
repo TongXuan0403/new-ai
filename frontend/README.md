@@ -1,4 +1,4 @@
-# ai-vue · 心理健康助手前端应用
+# frontend · 心理健康助手前端应用
 
 > Vue 3 + Vite 构建的前后端分离前端，面向用户的**前台**（AI 咨询 / 情绪日记 / 知识库）与面向运营的**后台**（数据分析 / 知识管理 / 咨询记录 / 情绪日志）双端一体。
 
@@ -18,6 +18,9 @@
 - **AI 心理咨询**：发起会话、SSE 流式对话（`@microsoft/fetch-event-source`）、历史会话回看与情绪分析
 - **情绪日记**：记录当日情绪评分、主导情绪、诱因、压力等级
 - **心理健康知识库**：分类检索、文章详情（Markdown 渲染、安全转义）
+- **心理资源与预约（P2）**：校内 / 热线 / 本地资源浏览，在线提交预约申请、查看处理状态
+- **主题化成长计划（P2）**：专业人员审核的阶段性计划，浏览、记录并跟踪完成进度
+- **语音输入（P2）**：对话页支持浏览器原生语音输入（Chrome / Edge）
 
 **后台（管理端 `/back`）**
 
@@ -25,6 +28,9 @@
 - 知识文章管理：分类树、分页检索、富文本编辑（wangeditor）、封面图上传、发布 / 下线
 - 咨询记录：全量会话与消息查看
 - 情绪日志：全量日记查看与删除
+- 校园报告（P2）：匿名聚合报告，ECharts 可视化
+- 预约管理（P2）：预约处理 + 心理资源管理
+- 成长计划管理（P2）：计划发布 / 下线 / 编辑 / 删除
 
 ## 技术栈
 
@@ -75,7 +81,7 @@ npm run dev
 ## 项目结构
 
 ```
-ai-vue/
+frontend/
 ├── index.html
 ├── vite.config.js              # 开发代理 / 构建分包配置
 ├── src/
@@ -88,8 +94,8 @@ ai-vue/
 │   │   └── admin.js            # 后台接口（登录 / 文章 / 会话 / 日记 / 统计）
 │   ├── components/             # 布局与公共组件（AuthLayout / BackendLayout / FrontendLayout / 富文本 / Markdown 渲染 等）
 │   ├── views/                  # 页面
-│   │   ├── 前台：home / consultation / emotionDiary / frontendKnowledge / articleDetail / login / register
-│   │   └── 后台：dashboard / knowledge / consultations / emotional
+│   │   ├── 前台：home / consultation / emotionDiary / frontendKnowledge / articleDetail / counseling / growthPlans / login / register
+│   │   └── 后台：dashboard / knowledge / consultations / emotional / report / appointments / growthPlansAdmin
 │   ├── utils/                  # axios 实例与工具
 │   └── assets/                 # 静态资源
 ```
@@ -108,6 +114,11 @@ ai-vue/
 | `/back/knowledge` | 知识文章管理 | 管理员 |
 | `/back/consultations` | 咨询记录 | 管理员 |
 | `/back/emotional` | 情绪日志 | 管理员 |
+| `/counseling` | 心理资源与预约 | 公开 / 提交需登录 |
+| `/growth-plans` | 成长计划 | 公开 / 记进度需登录 |
+| `/back/report` | 校园报告 | 管理员 |
+| `/back/appointments` | 预约管理 | 管理员 |
+| `/back/growth-plans` | 成长计划管理 | 管理员 |
 
 > 路由守卫根据 `localStorage` 中的 token 与 `userType` 控制访问：`userType=2` 管理员进入后台，`userType=1` 普通用户仅前台，未登录访问后台跳转登录页。
 

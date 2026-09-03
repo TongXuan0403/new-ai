@@ -18,17 +18,17 @@
 
 | 版本 | 分支 | 说明 |
 | --- | --- | --- |
-| **V2.0（当前主干）** | `main` | **前后端独立工程**（`ai-spingboot` + `ai-vue`），引入 **Spring AI ChatClient + MCP（模型上下文协议）**，AI 对话可实时检索心理健康知识库，并新增后台数据分析 / 情绪日志管理等能力 |
+| **V2.0（当前主干）** | `main` | **前后端独立工程**（`backend` + `frontend`），引入 **Spring AI ChatClient + MCP（模型上下文协议）**，AI 对话可实时检索心理健康知识库，并新增后台数据分析 / 情绪日志管理等能力 |
 | V1.x（MVP，已归档） | `v1` | 单体结构（`server` / `web` 两个目录），含 P0 安全 MVP 与 P1 连续使用增强；代码与历史已完整保留在 `v1` 分支 |
 
 ## 仓库结构
 
 ```
-├── ai-spingboot/        # 后端服务（Spring Boot 3.5 + Spring AI + MyBatis-Plus）
+├── backend/        # 后端服务（Spring Boot 3.5 + Spring AI + MyBatis-Plus）
 │   ├── src/main/java/   # Java 源码（controller / service / mapper / config / AiService）
 │   ├── src/main/resources/  # 配置与知识库资源
 │   └── sql/schema.sql   # 建表脚本（MySQL 8.0）
-├── ai-vue/              # 前端应用（Vue 3 + Vite + Element Plus + Pinia）
+├── frontend/              # 前端应用（Vue 3 + Vite + Element Plus + Pinia）
 │   └── src/             # 页面 / 组件 / 路由 / 状态 / API 封装
 └── docs/                # 产品设计与技术文档（含 V1 历史归档）
 ```
@@ -66,14 +66,14 @@
 
 ```bash
 # 1. 初始化数据库
-mysql -uroot -p < ai-spingboot/sql/schema.sql
+mysql -uroot -p < backend/sql/schema.sql
 
 # 2. 启动后端（端口 1236）
-cd ai-spingboot
+cd backend
 mvn spring-boot:run
 
 # 3. 启动前端（端口 5173，已代理 /api → localhost:1236）
-cd ai-vue
+cd frontend
 npm install
 npm run dev
 ```
@@ -82,8 +82,8 @@ npm run dev
 
 ## 文档
 
-- [后端服务文档（ai-spingboot）](ai-spingboot/README.md)
-- [前端应用文档（ai-vue）](ai-vue/README.md)
+- [后端服务文档（backend）](backend/README.md)
+- [前端应用文档（frontend）](frontend/README.md)
 - [产品设计文档](docs/产品设计文档.md)
 - [技术方案](docs/技术方案.md)
 - [实施进度看板](docs/实施进度看板.html)

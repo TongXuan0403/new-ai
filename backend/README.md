@@ -1,4 +1,4 @@
-# ai-spingboot · 心理健康助手后端服务
+# backend · 心理健康助手后端服务
 
 > Spring Boot 3.5 + **Spring AI** + **MCP** 的 AI 心理支持后端服务，提供认证、AI 流式对话、知识库检索、情绪日记、知识管理与数据统计等 REST 与 SSE 接口。
 
@@ -22,6 +22,9 @@
 | 知识文章 | 分类树 + 文章分页（前台仅已发布、管理员全量）、富文本内容、封面上传、状态流转 |
 | 数据统计 | `/api/data-analytics/overview` 运营聚合概览 |
 | 文件上传 | 10MB 限制，`uploads/` 本地存储，返回可访问 URL |
+| 心理中心预约/转介（P2） | 可配置资源库（校内/热线/本地）、预约申请与处理流转（`/api/counseling/**`） |
+| 匿名校园报告（P2） | `/api/data-analytics/campus-report` 纯聚合报告，无个人数据 |
+| 主题化成长计划（P2） | 计划 CRUD/审核发布、用户进度跟踪（`/api/growth-plan/**`） |
 
 ## 技术栈
 
@@ -45,7 +48,7 @@
 mysql -uroot -p < sql/schema.sql
 ```
 
-> 脚本创建库 `mental_health_assistant` 与 6 张表（`user` / `consultation_session` / `consultation_message` / `knowledge_category` / `knowledge_article` / `emotion_diary`）。种子数据由后端启动时通过 `DataInitializer` 自动写入。
+> 脚本创建库 `mental_health_assistant` 与 10 张表（`user` / `consultation_session` / `consultation_message` / `knowledge_category` / `knowledge_article` / `emotion_diary` / `counseling_resource` / `appointment_request` / `growth_plan` / `growth_plan_progress`）。种子数据（账号、知识、心理资源、成长计划）由后端启动时通过 `DataInitializer` 自动写入。
 
 ### 2. 配置
 
@@ -85,7 +88,7 @@ mvn spring-boot:run
 ## 项目结构
 
 ```
-ai-spingboot/
+backend/
 ├── sql/schema.sql                     # 建表脚本
 ├── src/main/java/org/example/aispingboot/
 │   ├── AiService/                     # AI 相关服务与提示词管理
