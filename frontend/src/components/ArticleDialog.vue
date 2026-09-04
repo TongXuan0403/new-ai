@@ -6,6 +6,39 @@
         @close="handleClose"
     >
         <el-form :model="formData" :rules="rules" ref="formRef" label-width="120px">
+            <el-form-item label="文档导入">
+                <div
+                    class="doc-import"
+                    :class="{ 'is-dragover': dragOver }"
+                    @click="fileInputRef?.click()"
+                    @dragover.prevent="dragOver = true"
+                    @dragleave.prevent="dragOver = false"
+                    @drop.prevent="handleDrop"
+                >
+                    <input
+                        ref="fileInputRef"
+                        type="file"
+                        class="doc-input"
+                        accept=".txt,.md,.markdown,.pdf,.doc,.docx"
+                        @change="handleFileChange"
+                    />
+                    <template v-if="importing">
+                        <el-icon class="doc-icon is-loading"><Loading /></el-icon>
+                        <p class="doc-tip">正在解析「{{ importingName }}」…</p>
+                        <p class="doc-sub">请稍候，正在识取文档内容</p>
+                    </template>
+                    <template v-else-if="importedFile">
+                        <el-icon class="doc-icon success"><CircleCheckFilled /></el-icon>
+                        <p class="doc-tip">{{ importedFile.name }}<span class="doc-size">（{{ formatSize(importedFile.size) }}）</span></p>
+                        <p class="doc-sub">已识别标题与正文，可修改后保存；点击此处重新选择</p>
+                    </template>
+                    <template v-else>
+                        <el-icon class="doc-icon"><Document /></el-icon>
+                        <p class="doc-tip">将文档拖拽到此处，或 <span class="doc-link">点击选择文件</span></p>
+                        <p class="doc-sub">支持 txt / md / pdf / doc / docx，自动识别文档标题与正文</p>
+                    </template>
+                </div>
+            </el-form-item>
             <el-form-item label="文章标题" prop="title">
                 <el-input v-model="formData.title" placeholder="请输入文章标题" maxlength="200" show-word-limit clearable />
             </el-form-item>
@@ -46,7 +79,7 @@
                 <RichTextEditor
                     v-model="formData.content"
                     placeholder="请输入文章内容，支持富文本格式\n\n可以使用加粗、斜体、列表、标题等格式来丰富文章内容。"
-                    :maxCharCount="5000"
+                    :maxCharCount="100000"
                     @change="handleContentChange"
                     @created="handleEditorCreated"
                     min-height="400px"
@@ -66,8 +99,8 @@
 </template>
 <script setup>
 import { ref, reactive, computed, nextTick, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { uploadFile, createArticle, updateArticle } from '@/api/admin'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { uploadFile, createArticle, updateArticle, importDocument } from '@/api/admin'
 import { fileBaseUrl } from '@/config/index.js'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
@@ -131,6 +164,10 @@ const handleClose = () => {
     editorInstance.value?.clear()
     // 重置封面图片和数据
     handleRemove()
+    // 重置文档导入状态
+    importedFile.value = null
+    importing.value = false
+    dragOver.value = false
     emit('update:modelValue', false)
 }
 
@@ -156,7 +193,7 @@ const rules = reactive({
     ],
     content: [
         { required: true, message: '请输入文章内容', trigger: 'blur' },
-        { max: 5000, message: '文章内容最多5000个字符', trigger: 'blur' }
+        { max: 100000, message: '文章内容最多100000个字符', trigger: 'blur' }
     ],
 })
 
@@ -165,6 +202,112 @@ const commonTags = [
   '冥想', '正念', '放松', '心理健康', '自我成长',
   '人际关系', '工作压力', '学习方法', '生活技巧'
 ]
+
+// 文档导入（拖拽 / 选择上传，后端识取文档内容）
+const SUPPORTED_DOC_EXT = ['txt', 'md', 'markdown', 'pdf', 'doc', 'docx']
+const fileInputRef = ref(null)
+const dragOver = ref(false)
+const importing = ref(false)
+const importingName = ref('')
+const importedFile = ref(null)
+
+const handleDrop = (e) => {
+    dragOver.value = false
+    const files = e.dataTransfer?.files
+    if (files && files.length) {
+        handleImport(files[0])
+    }
+}
+
+const handleFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+        handleImport(file)
+    }
+    // 清空 input 值，保证可重复选择同一文件
+    e.target.value = ''
+}
+
+const handleImport = (file) => {
+    const ext = (file.name.split('.').pop() || '').toLowerCase()
+    if (!SUPPORTED_DOC_EXT.includes(ext)) {
+        ElMessage.error('仅支持 txt / md / pdf / doc / docx 文档')
+        return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        ElMessage.error('文档大小不能超过 10MB')
+        return
+    }
+    const hasContent = formData.content && formData.content.trim() && formData.content !== '<p><br></p>'
+    if (hasContent) {
+        ElMessageBox.confirm('导入文档将覆盖当前文章内容，是否继续？', '确认导入', {
+            confirmButtonText: '覆盖并导入',
+            cancelButtonText: '取消',
+            type: 'warning'
+        }).then(() => doImport(file)).catch(() => {})
+    } else {
+        doImport(file)
+    }
+}
+
+const doImport = async (file) => {
+    importing.value = true
+    importingName.value = file.name
+    try {
+        const res = await importDocument(file)
+        importedFile.value = file
+        if (!formData.title) {
+            formData.title = res.title
+        }
+        const html = textToHtml(res.content)
+        formData.content = html
+        editorInstance.value?.setHtml(html)
+        ElMessage.success('文档解析成功，标题与正文已填充')
+    } catch (e) {
+        // 错误提示已由请求拦截器统一处理
+    } finally {
+        importing.value = false
+    }
+}
+
+const formatSize = (bytes) => {
+    if (!bytes) return '0 B'
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB'
+}
+
+// 纯文本 / 轻量 Markdown -> 富文本 HTML
+const textToHtml = (text) => {
+    const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    const lines = String(text || '').replace(/\r\n/g, '\n').split('\n')
+    const blocks = []
+    let para = []
+    const flush = () => {
+        if (para.length) {
+            blocks.push({ type: 'p', text: para.join('\n') })
+            para = []
+        }
+    }
+    for (const line of lines) {
+        const heading = line.match(/^(#{1,3})\s+(.*)$/)
+        if (heading) {
+            flush()
+            blocks.push({ type: 'h' + heading[1].length, text: heading[2].trim() })
+            continue
+        }
+        if (line.trim() === '') {
+            flush()
+            continue
+        }
+        para.push(line)
+    }
+    flush()
+    return blocks.map(b => {
+        const content = esc(b.text).replace(/\n/g, '<br>')
+        return b.type.startsWith('h') ? `<${b.type}>${content}</${b.type}>` : `<p>${content}</p>`
+    }).join('')
+}
 
 // 上传
 const imgUrl = ref('')
@@ -266,5 +409,80 @@ const handleSubmit = () => {
     width: 200px;
     height: 120px;
     display: block;
+}
+
+/* 文档导入区域 */
+.doc-import {
+    width: 100%;
+    border: 1.5px dashed #c0c4cc;
+    border-radius: 8px;
+    padding: 22px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fafbfc;
+    box-sizing: border-box;
+
+    &:hover {
+        border-color: #4A90E2;
+        background: #f4f8ff;
+    }
+
+    &.is-dragover {
+        border-color: #4A90E2;
+        background: #eaf2ff;
+        transform: scale(1.005);
+    }
+
+    .doc-input {
+        display: none;
+    }
+
+    .doc-icon {
+        font-size: 28px;
+        color: #8b949e;
+        margin-bottom: 8px;
+
+        &.is-loading {
+            color: #4A90E2;
+            animation: doc-rotating 1s linear infinite;
+        }
+
+        &.success {
+            color: #67c23a;
+        }
+    }
+
+    .doc-tip {
+        margin: 0;
+        font-size: 14px;
+        color: #303133;
+
+        .doc-link {
+            color: #4A90E2;
+            font-weight: 500;
+        }
+
+        .doc-size {
+            margin-left: 4px;
+            color: #909399;
+            font-size: 12px;
+        }
+    }
+
+    .doc-sub {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: #909399;
+    }
+}
+
+@keyframes doc-rotating {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>

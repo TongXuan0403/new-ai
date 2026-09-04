@@ -39,7 +39,7 @@
 - **AI 心理对话**：基于 Spring AI ChatClient（DeepSeek 兼容接口）+ 会话窗口记忆（30 条），支持 **SSE 流式输出**；知识库缺失或接口异常时自动降级为本地兜底回复。
 - **知识库检索增强（RAG）**：知识库数据源为 **MySQL 后台已发布文章**（`knowledge_article`），与「知识文章管理」完全打通——管理后台上传 / 编辑 / 发布后 **AI 立即检索到**（缓存自动失效，无需重启）；通过 `@Tool` 暴露为 **MCP 工具**（搜索 / 详情 / 分类），AI 在对话中自主调用检索，回答优先引用知识库内容。检索为 **混合排序**：关键词相关度 + **语义向量检索**（硅基流动 BGE-M3，可命中同义/换种说法表达），embedding 异常自动降级；旧静态知识库启动时自动迁移入库。
 - **情绪日记**：记录情绪评分、主导情绪、诱因与压力等级，支持管理端分页查看与删除。
-- **知识文章管理**：分类 + 文章分页检索、富文本编辑（wangeditor）、封面图上传、发布 / 下线状态流转。
+- **知识文章管理**：分类 + 文章分页检索、富文本编辑（wangeditor）、封面图上传、发布 / 下线状态流转；**支持拖拽 / 选择上传文档（txt / md / pdf / doc / docx），自动识取文档标题与正文**一键生成知识文章，长文档内容上限提升至 10 万字符。
 - **数据分析**：运营概览聚合（用户 / 会话 / 消息 / 情绪分布），前端 ECharts 可视化。
 - **会话管理**：会话列表（用户看自己、管理员看全部）、消息回看、删除、会话级情绪分析。
 
@@ -60,7 +60,7 @@
 | ORM | MyBatis-Plus 3.5.7 · MySQL 8.0（`mental_health_assistant`） |
 | 流式 | Reactor `Flux<ServerSentEvent>`（SSE：`message` → `done` / `error`） |
 | 前端 | Vue 3.5 · Vite 7 · Element Plus 2.13 · Pinia · Vue Router 4 · ECharts 6 · wangeditor 5 |
-| 工具 | Lombok · Hutool · spring-boot-starter-validation |
+| 工具 | Lombok · Hutool · spring-boot-starter-validation · Apache PDFBox 3.0（PDF 解析）· Apache POI 5.4（Word 解析） |
 
 ## 快速开始（概览）
 

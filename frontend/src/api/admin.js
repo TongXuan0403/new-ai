@@ -128,3 +128,16 @@ export function updateGrowthPlanStatus(id, data) {
 export function deleteGrowthPlan(id) {
     return service.delete(`/growth-plan/${id}`)
 }
+
+// ---------- 知识库文档导入（拖拽/选择上传，后端识取文档内容） ----------
+
+export function importDocument(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return service.post('/knowledge/article/import', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        },
+        timeout: 60000
+    })
+}

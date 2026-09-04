@@ -6,9 +6,11 @@ import org.example.aispingboot.DTO.command.ArticleCreateDTO;
 import org.example.aispingboot.DTO.command.ArticleStatusDTO;
 import org.example.aispingboot.DTO.response.ArticlePageVO;
 import org.example.aispingboot.DTO.response.ArticleVO;
+import org.example.aispingboot.DTO.response.DocumentParseVO;
 import org.example.aispingboot.common.Result;
 import org.example.aispingboot.exception.BusinessException;
 import org.example.aispingboot.service.ArticleService;
+import org.example.aispingboot.service.DocumentParseService;
 import org.example.aispingboot.util.UserContext;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,11 +22,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/knowledge/article")
 public class ArticleController {
     @Resource
     private ArticleService articleService;
+
+    @Resource
+    private DocumentParseService documentParseService;
 
     /**
      * 文章分页。前台（未登录/普通用户）仅看已发布；管理员可筛选全部状态。
@@ -40,6 +46,16 @@ public class ArticleController {
             @RequestParam(required = false) String sortDirection) {
         boolean isAdmin = UserContext.isAdmin();
         return Result.ok(articleService.page(categoryId, title, status, isAdmin, currentPage, size, sortField, sortDirection));
+    }
+
+    /**
+     * 文档导入：拖拽/选择上传 txt/md/pdf/doc/docx，解析并返回标题与正文。
+     * 仅管理员可用（与文章管理一致）。
+     */
+    @PostMapping("/import")
+    public Result<DocumentParseVO> importDocument(@RequestParam("file") MultipartFile file) {
+        requireAdmin();
+        return Result.ok(documentParseService.parse(file));
     }
 
     @PostMapping
