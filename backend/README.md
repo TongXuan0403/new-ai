@@ -17,7 +17,7 @@
 | --- | --- |
 | 用户认证 | 注册 / 登录 / 登出 / 当前用户；JWT 无状态鉴权；`user_type` 区分普通用户（1）与管理员（2） |
 | AI 心理对话 | Spring AI `ChatClient` + 会话窗口记忆（最近 30 条），DeepSeek 兼容接口，**SSE 流式**返回；无 Key 或异常时本地兜底回复 |
-| 知识库 RAG | 知识库数据源为 MySQL `knowledge_article` **已发布文章**（与后台「知识文章管理」打通：增删改 / 发布 / 下线后缓存自动失效、AI 立即生效）；通过 `@Tool` 暴露为 **MCP 工具**（`searchKnowledgeArticles` / `getKnowledgeArticleById` / `listKnowledgeCategories`），对话中自主检索增强回答 |
+| 知识库 RAG | 知识库数据源为 MySQL `knowledge_article` **已发布文章**（与后台「知识文章管理」打通：增删改 / 发布 / 下线后缓存自动失效、AI 立即生效）；通过 `@Tool` 暴露为 **MCP 工具**（`searchKnowledgeArticles` / `getKnowledgeArticleById` / `listKnowledgeCategories`），对话中自主检索增强回答。检索为 **混合排序**：关键词相关度 + 语义相似度（硅基流动 BGE-M3 embedding，可命中「换种说法」的相关文章）；embedding 未配置或调用失败自动降级为纯关键词 |
 | 情绪日记 | 用户记录情绪评分 / 主导情绪 / 诱因 / 压力等级；管理端分页查看与删除 |
 | 知识文章 | 分类树 + 文章分页（前台仅已发布、管理员全量）、富文本内容、封面上传、状态流转 |
 | 数据统计 | `/api/data-analytics/overview` 运营聚合概览 |
@@ -63,6 +63,9 @@ mysql -uroot -p < sql/schema.sql
 | `spring.ai.openai.chat.options.model` | `deepseek-v4-pro` | 对话模型 |
 | `jwt.secret` | 本地默认值 | **生产环境务必更换强密钥** |
 | `app.upload-dir` | `uploads` | 文件上传目录 |
+| `app.embedding.base-url` | `https://api.siliconflow.cn` | 语义向量化接口（硅基流动） |
+| `app.embedding.api-key` | 本地配置 | 硅基流动 Key（`application.yml` 已 `skip-worktree` 保护，不进版本库） |
+| `app.embedding.model` | `BAAI/bge-m3` | embedding 模型 |
 
 **推荐**：通过环境变量注入密钥，避免密钥进入版本库：
 
@@ -179,6 +182,7 @@ event: done      data: {}
 - **MCP**：`KnowledgeMcpConfig` 通过 `MethodToolCallbackProvider` 将 `KnowledgeBaseService` 的 `@Tool` 方法注册为工具，模型可在对话中自主检索知识库。
 - **RAG 上下文**：发送给模型前，`PsychologicalSupportService` 会基于用户消息调用 `buildKnowledgeContext` 注入最相关的知识摘要作为系统上下文，并要求模型优先引用、不编造来源。
 - **数据实时性**：`KnowledgeBaseService` 以 MySQL `knowledge_article` 为唯一数据源并维护内存缓存；`ArticleService` 每次增删改 / 状态流转后调用 `invalidateCache()`，保证管理后台改动无需重启即可被 AI 检索到。
+- **语义检索**：`EmbeddingService` 调用硅基流动 `BAAI/bge-m3` 生成 1024 维向量；检索得分为「关键词相关度 + 余弦相似度×权重」，文章向量与查询向量均内存缓存，接口异常自动降级为纯关键词。
 
 ## 测试
 
@@ -193,6 +197,7 @@ mvn test
 ```bash
 python test-rag.py               # 真实 AI 对话，验证知识库参与回答
 python test-rag-upload-loop.py   # 后台新增文章 -> AI 知识库立即检索到（缓存失效）
+python test-semantic.py           # 语义检索：验证「换种说法」也能命中相关文章
 ```
 
 ## License
