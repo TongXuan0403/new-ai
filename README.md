@@ -96,6 +96,14 @@ mysql -uroot -p123456 --default-character-set=utf8mb4 < backend/sql/seed_demo_da
 
 > 演示数据幂等性说明：重复执行会因 `user` 表唯一键冲突而中止，删除相应记录后即可重新导入；`growth_plan` 无唯一约束，重复执行前请先清空对应记录。
 
+### 已知问题与修复记录
+
+| 日期 | 问题 | 根因 | 修复 |
+| --- | --- | --- | --- |
+| 2026-09-04 | P2 成长计划 / 预约管理 / 校园报告 / 心理资源页面添加数据后列表不刷新、始终显示 No Data | axios 响应拦截器已返回业务数据（`data.data`），页面代码误用 `res.data?.records` 取数导致始终取到 `undefined` | 前端 5 个页面统一移除多余的 `.data` 层（`growthPlansAdmin.vue` / `growthPlans.vue` / `appointments.vue` / `counseling.vue` / `report.vue`） |
+
+> 取数约定：`@/utils/request.js` 响应拦截器对 `code === 200` 直接返回业务数据 `data.data`，页面调用 `service.get/post` 后应直接消费返回对象，**不要**再访问 `.data`。
+
 ## 文档
 
 - [后端服务文档（backend）](backend/README.md)

@@ -185,8 +185,8 @@ const loadAppointments = async (page = 1) => {
     try {
         query.currentPage = page
         const res = await getAppointmentPage(query)
-        appointments.value = res.data?.records || []
-        total.value = res.data?.total || 0
+        appointments.value = res?.records || []
+        total.value = res?.total || 0
     } finally {
         loading.value = false
     }
@@ -232,7 +232,7 @@ const loadResources = async () => {
     resourceLoading.value = true
     try {
         const res = await getAdminResources(resourceKeyword.value)
-        resources.value = res.data || []
+        resources.value = res || []
     } finally {
         resourceLoading.value = false
     }

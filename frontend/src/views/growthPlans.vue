@@ -114,8 +114,8 @@ const loadPlans = async (page = 1) => {
         const params = { ...query }
         if (theme.value) params.theme = theme.value
         const res = await getGrowthPlans(params)
-        plans.value = res.data?.records || []
-        total.value = res.data?.total || 0
+        plans.value = res?.records || []
+        total.value = res?.total || 0
     } finally {
         loading.value = false
     }
@@ -123,8 +123,8 @@ const loadPlans = async (page = 1) => {
 
 const openDetail = async (plan) => {
     const res = await getGrowthPlanDetail(plan.id)
-    currentPlan.value = res.data
-    myProgress.value = res.data?.myProgress || 0
+    currentPlan.value = res
+    myProgress.value = res?.myProgress || 0
     detailDialog.value = true
 }
 

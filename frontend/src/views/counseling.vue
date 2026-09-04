@@ -176,7 +176,7 @@ const loadResources = async () => {
     loading.value = true
     try {
         const res = await getCounselingResources()
-        resources.value = res.data || []
+        resources.value = res || []
     } finally {
         loading.value = false
     }
@@ -185,7 +185,7 @@ const loadResources = async () => {
 const loadMyAppointments = async () => {
     if (!localStorage.getItem('token')) return
     const res = await getMyAppointments()
-    myAppointments.value = res.data || []
+    myAppointments.value = res || []
 }
 
 onMounted(() => {

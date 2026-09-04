@@ -133,7 +133,7 @@ const handleResize = () => {
 
 onMounted(async () => {
     const res = await getCampusReport()
-    report.value = res.data
+    report.value = res
     renderCharts()
     window.addEventListener('resize', handleResize)
 })

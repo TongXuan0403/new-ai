@@ -123,8 +123,8 @@ const loadPlans = async (page = 1) => {
         const params = { ...query }
         if (status.value != null) params.status = status.value
         const res = await getAdminGrowthPlans(params)
-        plans.value = res.data?.records || []
-        total.value = res.data?.total || 0
+        plans.value = res?.records || []
+        total.value = res?.total || 0
     } finally {
         loading.value = false
     }
