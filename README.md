@@ -27,7 +27,7 @@
 ├── backend/        # 后端服务（Spring Boot 3.5 + Spring AI + MyBatis-Plus）
 │   ├── src/main/java/   # Java 源码（controller / service / mapper / config / AiService）
 │   ├── src/main/resources/  # 配置与知识库资源
-│   └── sql/schema.sql   # 建表脚本（MySQL 8.0）
+│   └── sql/            # 建表脚本（schema.sql）与演示种子数据（seed_demo_data.sql）
 ├── frontend/              # 前端应用（Vue 3 + Vite + Element Plus + Pinia）
 │   └── src/             # 页面 / 组件 / 路由 / 状态 / API 封装
 └── docs/                # 产品设计与技术文档（含 V1 历史归档）
@@ -79,6 +79,22 @@ npm run dev
 ```
 
 > 种子数据（`admin` / `demo` 账号，密码 `123456`，知识分类与文章）由后端启动时自动写入。
+
+### 演示数据（可选）
+
+导入演示数据可立即获得完整的业务展示效果（成长计划 / 预约管理 / 校园报告均有数据可看）：
+
+```bash
+mysql -uroot -p123456 --default-character-set=utf8mb4 < backend/sql/seed_demo_data.sql
+```
+
+| 数据类别 | 数量 | 说明 |
+| --- | --- | --- |
+| 成长计划 | 10 条 | 覆盖情绪 / 正念 / 睡眠 / 自我成长 / 学习效能 / 人际 / 作息 / 自尊自信 / 压力 / 积极心理，已发布 |
+| 预约管理 | 10 条 | 面向学校心理中心与 12356 热线，覆盖待处理 / 已确认 / 已取消 / 已完成四种状态 |
+| 校园报告数据 | 5 用户 + 10 日记 | 新增 5 个学生账号（密码 `123456`）与近 7 天情绪日记，驱动匿名校园报告聚合展示 |
+
+> 演示数据幂等性说明：重复执行会因 `user` 表唯一键冲突而中止，删除相应记录后即可重新导入；`growth_plan` 无唯一约束，重复执行前请先清空对应记录。
 
 ## 文档
 
