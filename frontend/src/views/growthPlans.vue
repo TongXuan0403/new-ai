@@ -94,17 +94,23 @@ const isLoggedIn = ref(false)
 
 const renderContent = (content) => {
     if (!content) return ''
-    // 简单将 Markdown 标题/列表转成安全 HTML，其余按段落展示
-    return (content || '')
+    // 轻量 Markdown 渲染：标题 / 加粗 / 列表，其余按段落展示
+    let html = content
         .replace(/^### (.*)$/gm, '<h4>$1</h4>')
         .replace(/^## (.*)$/gm, '<h3>$1</h3>')
         .replace(/^# (.*)$/gm, '<h3>$1</h3>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/^- (.*)$/gm, '<li>$1</li>')
         .replace(/^\d+\. (.*)$/gm, '<li>$1</li>')
-        .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
-        .replace(/\n{2,}/g, '<br/><br/>')
-        .replace(/\n/g, '<br/>')
+    // 合并连续 <li> 为 <ul>（去除列表内部的换行）
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, (m) => '<ul>' + m.replace(/\n/g, '') + '</ul>')
+    // 标题行尾的换行不再补 <br/>，避免标题与内容间空行过大
+    html = html.replace(/<\/(h[34])><br\/>/g, '</$1>')
+    // 连续空行（段落间距）
+    html = html.replace(/\n{2,}/g, '<br/><br/>')
+    // 其余单个换行
+    html = html.replace(/\n/g, '<br/>')
+    return html
 }
 
 const loadPlans = async (page = 1) => {

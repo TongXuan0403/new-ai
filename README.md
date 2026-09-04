@@ -101,6 +101,7 @@ mysql -uroot -p123456 --default-character-set=utf8mb4 < backend/sql/seed_demo_da
 | 日期 | 问题 | 根因 | 修复 |
 | --- | --- | --- | --- |
 | 2026-09-04 | P2 成长计划 / 预约管理 / 校园报告 / 心理资源页面添加数据后列表不刷新、始终显示 No Data | axios 响应拦截器已返回业务数据（`data.data`），页面代码误用 `res.data?.records` 取数导致始终取到 `undefined` | 前端 5 个页面统一移除多余的 `.data` 层（`growthPlansAdmin.vue` / `growthPlans.vue` / `appointments.vue` / `counseling.vue` / `report.vue`） |
+| 2026-09-04 | 成长计划详情正文 Markdown 标题/列表显示为原始 `##`、`\n` 文本 | 种子数据生成脚本将换行符转义成字面 `\\n` 入库，前端依赖真实换行识别标题与列表 | ① 已入库数据将字面 `\n` 替换为真实换行符；② 修正 `gen_seed_data.py` 转义并重新生成 `seed_demo_data.sql`；③ 优化 `growthPlans.vue` 的 `renderContent`（列表合并为 `<ul>`、去除标题后多余换行） |
 
 > 取数约定：`@/utils/request.js` 响应拦截器对 `code === 200` 直接返回业务数据 `data.data`，页面调用 `service.get/post` 后应直接消费返回对象，**不要**再访问 `.data`。
 

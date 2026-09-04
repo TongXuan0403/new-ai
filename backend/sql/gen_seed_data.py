@@ -68,7 +68,7 @@ plans = [
 for title, theme, summary, content, days, views in plans:
     lines.append(
         f"INSERT INTO growth_plan (title, summary, theme, content, duration_days, reviewer, reviewed_at, status, view_count, created_at, updated_at)\n"
-        f"VALUES ('{title}', '{summary}', '{theme}', '{content.replace(chr(10), '\\\\n')}', {days}, '专业审核', '2026-09-04 09:00:00', 1, {views}, '2026-09-04 09:00:00', '2026-09-04 09:00:00');"
+        f"VALUES ('{title}', '{summary}', '{theme}', '{content.replace(chr(10), '\\n')}', {days}, '专业审核', '2026-09-04 09:00:00', 1, {views}, '2026-09-04 09:00:00', '2026-09-04 09:00:00');"
     )
 lines.append("")
 
