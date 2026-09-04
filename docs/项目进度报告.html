@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 心理健康助手 2.0 · 项目进度报告</title>
+<style>
+  :root{
+    --bg:#F5F6F4; --card:#FFFFFF; --border:#E3E5E0; --ink:#1C2320; --muted:#687069;
+    --green:#2F6B43; --green-soft:#E7F2EA; --ok:#3E8E5A; --warn:#C97A2E; --warn-soft:#FBF0E2;
+    --risk:#B23A3C; --risk-soft:#F9EAEA; --info:#3A6EA5; --info-soft:#E9F1F8;
+    --todo:#9AA19B; --line:#DDE1DB;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'PingFang SC','Microsoft YaHei','Segoe UI',Arial,sans-serif;line-height:1.65;padding:28px 16px;font-size:14px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header.hero{background:linear-gradient(135deg,#2F6B43,#3E8E5A);color:#fff;border-radius:16px;padding:26px 28px;margin-bottom:18px}
+  header.hero .kicker{font-size:12px;letter-spacing:2px;opacity:.85;text-transform:uppercase}
+  header.hero h1{font-size:24px;margin:6px 0 8px;font-weight:700}
+  header.hero .sub{font-size:13px;opacity:.92;max-width:760px}
+  .hero-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .hero-badges span{font-size:12px;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:16px}
+  .card h2{font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:9px;font-weight:700}
+  .card h2 .no{display:inline-flex;width:24px;height:24px;border-radius:7px;background:var(--green-soft);color:var(--green);font-size:12px;align-items:center;justify-content:center;font-weight:700}
+  .card h3{font-size:14px;margin:16px 0 8px;font-weight:700}
+  p.lead{color:var(--muted);font-size:13px;margin-bottom:6px}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{border:1px solid var(--border);border-radius:12px;padding:13px 15px;background:#FBFCFA}
+  .stat .v{font-size:22px;font-weight:700;color:var(--green);line-height:1.2}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:12.8px}
+  th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#F3F5F1;font-weight:600;white-space:nowrap;color:#39433C}
+  td.mono,.mono{font-family:ui-monospace,Consolas,'Courier New',monospace;font-size:12px}
+  .scroll{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+  .scroll table{border:none}
+  .pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:999px;white-space:nowrap;font-weight:600}
+  .p-get{background:#E9F1F8;color:#3A6EA5}
+  .p-post{background:#E7F2EA;color:#2F6B43}
+  .p-put{background:#FBF0E2;color:#C97A2E}
+  .p-del{background:#F9EAEA;color:#B23A3C}
+  .auth{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:600;white-space:nowrap}
+  .a-pub{background:#EEF1ED;color:#5C645D}
+  .a-login{background:#E9F1F8;color:#3A6EA5}
+  .a-admin{background:#EFEAF8;color:#6A4FA0}
+  .a-warn{background:#F9EAEA;color:#B23A3C;border:1px dashed #D99}
+  .st{display:inline-block;font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600;white-space:nowrap}
+  .s-done{background:var(--green-soft);color:var(--ok)}
+  .s-part{background:var(--warn-soft);color:var(--warn)}
+  .s-gap{background:var(--risk-soft);color:var(--risk)}
+  .s-todo{background:#EEF1ED;color:var(--todo)}
+  .bar{height:9px;border-radius:999px;background:#ECEEEA;overflow:hidden;margin:5px 0 0}
+  .bar>i{display:block;height:100%;border-radius:999px;background:var(--ok)}
+  .bar>i.warn{background:var(--warn)}
+  .bar>i.risk{background:var(--risk)}
+  .module-row{display:grid;grid-template-columns:150px 1fr 70px 92px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .module-row:last-child{border-bottom:none}
+  .module-row .mname{font-weight:600;font-size:13px}
+  .module-row .mdesc{font-size:12px;color:var(--muted)}
+  .risk-item{border:1px solid var(--border);border-left-width:4px;border-radius:10px;padding:13px 15px;margin-bottom:11px;background:#FBFCFA}
+  .risk-item.r0{border-left-color:var(--risk)}
+  .risk-item.r1{border-left-color:var(--warn)}
+  .risk-item.r2{border-left-color:var(--info)}
+  .risk-item .rt{font-weight:700;font-size:13.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .risk-item .rb{font-size:12.6px;color:#3D453F;margin-top:5px}
+  .risk-item .ev{font-family:ui-monospace,Consolas,monospace;font-size:11.6px;background:#F1F3EF;border-radius:6px;padding:2px 6px;color:#566}
+  .risk-item .fix{font-size:12.4px;margin-top:5px;color:var(--green)}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .verdict{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .verdict .big{flex:1 1 280px}
+  .note{font-size:12.4px;color:var(--muted)}
+  .okline{color:var(--ok);font-weight:600}
+  .tagline{font-size:11.5px;color:var(--muted)}
+  ul.tight{padding-left:18px;font-size:12.8px}
+  ul.tight li{margin:3px 0}
+  .flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+  .flow .node{border:1px solid var(--border);background:#FBFCFA;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:600}
+  .flow .arr{color:var(--todo);font-weight:700}
+  footer{text-align:center;color:var(--muted);font-size:11.5px;margin:20px 0 6px}
+  @media(max-width:680px){
+    .two-col{grid-template-columns:1fr}
+    .module-row{grid-template-columns:96px 1fr 56px;}
+    .module-row .st-col{grid-column:2}
+    body{padding:16px 10px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">PROJECT PROGRESS · CODE AUDIT</div>
+    <h1>AI 心理健康助手 2.0 · 项目进度报告</h1>
+    <div class="sub">Spring AI + MCP 前后端分离工程（backend / frontend）。本报告基于对全部后端控制器、服务、数据表、前端路由与构建过程的实际核查生成，非文档转述。</div>
+    <div class="hero-badges">
+      <span>主干分支 main（V2.0）</span>
+      <span>后端编译 ✅ 通过</span>
+      <span>前端构建 ✅ 通过</span>
+      <span>报告日期 2026-09-04</span>
+    </div>
+  </header>
+
+  <!-- 0 总体结论 -->
+  <div class="card">
+    <h2><span class="no">0</span>总体结论：可以加新功能，但建议先修 1 个越权问题</h2>
+    <div class="verdict">
+      <div class="big">
+        <p><span class="okline">工程可正常编译、构建，主干功能闭环完整</span>，具备继续迭代的基础：分层规范、统一返回体、JWT 鉴权、10 张数据表、45 个接口、17 个前端页面，P2 三项扩展（预约转介 / 成长计划 / 校园报告）已前后端落地。</p>
+        <p style="margin-top:8px">但核查发现 <b>1 个应优先修复的越权缺陷</b>（情绪日记管理接口缺少管理员校验，普通用户可读取/删除全站日记），以及「AI 知识库与后台文章库双源未打通」「V1 部分安全合规能力在 V2 重构后缺失」「进度文档滞后」三类需要知晓的问题。它们<b>不阻断新增功能</b>，但越权问题建议在叠加新代码前先修复，避免技术债扩大。</p>
+      </div>
+      <div style="flex:0 0 230px">
+        <div class="stat" style="margin-bottom:10px"><div class="v">就绪度 良好</div><div class="l">可迭代，建议先做小修</div></div>
+        <div class="stat"><div class="v" style="color:var(--warn)">P0 ×1</div><div class="l">需优先修复的安全问题</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1 构建验证 -->
+  <div class="card">
+    <h2><span class="no">1</span>构建与运行验证（实际执行）</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>验证项</th><th>命令 / 方式</th><th>结果</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>后端编译</td><td class="mono">mvn -o compile</td><td><span class="st s-done">通过 exit 0</span></td><td>97 个 Java 源文件，离线编译无错误</td></tr>
+          <tr><td>前端构建</td><td class="mono">npm run build（vite build）</td><td><span class="st s-done">通过 25.8s</span></td><td>17 个页面分包构建成功，0 error</td></tr>
+          <tr><td>工作区状态</td><td class="mono">git status</td><td><span class="st s-done">干净</span></td><td>无未提交改动；main / v1 分支齐全，远程 origin 已配置</td></tr>
+          <tr><td>单元测试</td><td class="mono">src/test</td><td><span class="st s-part">覆盖薄弱</span></td><td>仅 1 个空壳 contextLoads（H2 内存库）；接口验证依赖 backend 目录下 test-api / test-e2e / test-sse 脚本</td></tr>
+          <tr><td>运行依赖</td><td>—</td><td><span class="st s-part">需外部环境</span></td><td>运行需本地 MySQL 8（库 mental_health_assistant）；AI 对话需环境变量 AI_API_KEY，未配置时自动走本地兜底回复</td></tr>
+          <tr><td>本机 JDK</td><td class="mono">java -version</td><td><span class="st s-part">版本差异</span></td><td>本机为 JDK 21，项目目标 Java 17，可向下兼容编译，部署时建议统一</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2 规模与栈 -->
+  <div class="card">
+    <h2><span class="no">2</span>代码规模与技术栈</h2>
+    <div class="stat-grid" style="margin-bottom:14px">
+      <div class="stat"><div class="v">97</div><div class="l">后端 Java 文件</div></div>
+      <div class="stat"><div class="v">4,735</div><div class="l">后端代码行</div></div>
+      <div class="stat"><div class="v">36</div><div class="l">前端 Vue/JS 文件</div></div>
+      <div class="stat"><div class="v">6,492</div><div class="l">前端代码行</div></div>
+      <div class="stat"><div class="v">45</div><div class="l">REST 接口</div></div>
+      <div class="stat"><div class="v">10</div><div class="l">数据表</div></div>
+      <div class="stat"><div class="v">17</div><div class="l">前端页面</div></div>
+      <div class="stat"><div class="v">11</div><div class="l">Controller</div></div>
+    </div>
+    <div class="scroll">
+      <table>
+        <tbody>
+          <tr><th style="width:110px">后端</th><td>Spring Boot 3.5.15 · Java 17 · Spring Security + JWT（auth0 4.4.0）· MyBatis-Plus 3.5.7 · MySQL 8 · Validation · Hutool · Lombok</td></tr>
+          <tr><th>AI 能力</th><td>Spring AI 1.1.8（OpenAI 兼容接入 DeepSeek）· ChatClient · 会话窗口记忆 30 条 · MCP Server（STREAMABLE）· @Tool 知识库工具 · Reactor SSE 流式</td></tr>
+          <tr><th>前端</th><td>Vue 3.5 · Vite 7 · Element Plus 2.13 · Pinia · Vue Router 4 · ECharts 6 · wangeditor 5 · @microsoft/fetch-event-source（SSE）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3 功能模块完成度 -->
+  <div class="card">
+    <h2><span class="no">3</span>功能模块完成度（V2.0 范围）</h2>
+    <p class="lead">完成度依据源码实际能力判定，而非 README / 看板声明。</p>
+    <div style="margin-top:8px">
+      <div class="module-row">
+        <div class="mname">用户认证</div><div><div class="mdesc">注册 / 登录 / 登出 / 当前用户，JWT 无状态，普通用户(1)与管理员(2)双角色，前端路由守卫</div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="mono">100%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">AI 心理对话</div><div><div class="mdesc">创建会话、SSE 流式输出、30 条窗口记忆、归属校验、异常本地兜底、会话情绪分析</div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="mono">100%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">知识库 RAG / MCP</div><div><div class="mdesc">@Tool 暴露检索/详情/分类，AI 可调用；但数据源为静态 JSON（仅 4 篇），与后台文章库未打通</div><div class="bar"><i class="warn" style="width:60%"></i></div></div>
+        <div class="mono">60%</div><div class="st-col"><span class="st s-part">有断层</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">知识文章管理</div><div><div class="mdesc">分类树、文章分页、富文本编辑、封面上传、草稿/发布/下线、阅读量，管理员闭环</div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="mono">100%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">情绪日记</div><div><div class="mdesc">用户侧仅「新增」；缺本人列表/编辑/删除/趋势接口；管理端可分页、删除但缺管理员鉴权</div><div class="bar"><i class="warn" style="width:55%"></i></div></div>
+        <div class="mono">55%</div><div class="st-col"><span class="st s-part">用户侧薄弱</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">会话管理</div><div><div class="mdesc">会话列表（用户看自己/管理员看全部）、消息回看、删除、会话级情绪分析</div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="mono">100%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">数据分析</div><div><div class="mdesc">运营概览聚合（用户/会话/日记/趋势）+ 匿名校园报告，前端 ECharts 呈现</div><div class="bar"><i style="width:95%"></i></div></div>
+        <div class="mono">95%</div><div class="st-col"><span class="st s-part">缺鉴权</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">P2 预约 / 转介</div><div><div class="mdesc">资源库（校内/热线/本地）、学生提交预约、管理端 待处理→确认→完成/取消 流转</div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="mono">100%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">P2 成长计划</div><div><div class="mdesc">主题计划（情绪/压力/睡眠/人际）、专业审核字段、学生进度跟踪 0-100、管理端 CRUD</div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="mono">100%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">语音 / 无障碍</div><div><div class="mdesc">对话页 Web Speech 语音输入（Chrome/Edge）、ARIA 标注、键盘可达、响应式适配</div><div class="bar"><i style="width:90%"></i></div></div>
+        <div class="mono">90%</div><div class="st-col"><span class="st s-done">完成</span></div>
+      </div>
+      <div class="module-row">
+        <div class="mname">自动化测试</div><div><div class="mdesc">仅 1 个上下文加载测试；接口主要靠脚本手工冒烟，无成体系单测/集成测试</div><div class="bar"><i class="risk" style="width:25%"></i></div></div>
+        <div class="mono">25%</div><div class="st-col"><span class="st s-gap">薄弱</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 接口清单 -->
+  <div class="card">
+    <h2><span class="no">4</span>后端接口清单（共 45 个，逐一核对源码）</h2>
+    <p class="lead">权限口径：<span class="auth a-pub">公开</span> SecurityConfig 放行无需登录；<span class="auth a-login">登录</span> 需有效 JWT；<span class="auth a-admin">管理员</span> Controller 内校验 userType=2；<span class="auth a-warn">缺鉴权</span> 语义为管理端但未校验管理员。</p>
+
+    <h3>4.1 连通性 & 用户（5）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/test</td><td><span class="auth a-pub">公开</span></td><td>连通测试（遗留调试接口）</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/user/add</td><td><span class="auth a-pub">公开</span></td><td>注册</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/user/login</td><td><span class="auth a-pub">公开</span></td><td>登录，返回 JWT 与用户信息</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/user/logout</td><td><span class="auth a-login">登录</span></td><td>登出（无状态，前端清 token）</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/user/current</td><td><span class="auth a-login">登录</span></td><td>获取当前登录用户详情</td></tr>
+      </tbody></table></div>
+
+    <h3>4.2 AI 心理对话（6）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/psychological-chat/session/start</td><td><span class="auth a-login">登录</span></td><td>创建会话并落首条用户消息</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/psychological-chat/stream</td><td><span class="auth a-login">登录</span></td><td>SSE 流式对话，事件 message → done / error</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/psychological-chat/sessions</td><td><span class="auth a-login">登录</span></td><td>会话分页（用户看自己 / 管理员看全部），兼容两种分页参数名</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/psychological-chat/sessions/{id}/messages</td><td><span class="auth a-login">登录+归属</span></td><td>会话消息列表，服务层校验归属</td></tr>
+        <tr><td><span class="pill p-del">DEL</span></td><td class="mono">/api/psychological-chat/sessions/{id}</td><td><span class="auth a-login">登录+归属</span></td><td>删除会话（级联消息）</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/psychological-chat/session/{id}/emotion</td><td><span class="auth a-login">登录+归属</span></td><td>会话级情绪分析，兼容 session_ 前缀</td></tr>
+      </tbody></table></div>
+
+    <h3>4.3 知识文章库 · MySQL（7）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/knowledge/category/tree</td><td><span class="auth a-pub">公开</span></td><td>文章分类树</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/knowledge/article/page</td><td><span class="auth a-pub">公开</span></td><td>文章分页（非管理员强制仅已发布），支持分类/标题/排序</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/knowledge/article</td><td><span class="auth a-admin">管理员</span></td><td>新建文章</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/knowledge/article/{id}</td><td><span class="auth a-pub">公开</span></td><td>文章详情，浏览量 +1</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/knowledge/article/{id}</td><td><span class="auth a-admin">管理员</span></td><td>更新文章</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/knowledge/article/{id}/status</td><td><span class="auth a-admin">管理员</span></td><td>草稿 / 发布 / 下线状态流转</td></tr>
+        <tr><td><span class="pill p-del">DEL</span></td><td class="mono">/api/knowledge/article/{id}</td><td><span class="auth a-admin">管理员</span></td><td>删除文章</td></tr>
+      </tbody></table></div>
+
+    <h3>4.4 AI 知识库 · 静态 JSON / MCP（3）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/knowledge</td><td><span class="auth a-pub">公开</span></td><td>关键词 / 分类检索，读 classpath articles.json（4 篇）</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/knowledge/{id}</td><td><span class="auth a-pub">公开</span></td><td>JSON 知识库文章详情</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/knowledge/categories</td><td><span class="auth a-pub">公开</span></td><td>JSON 知识库分类列表</td></tr>
+      </tbody></table></div>
+    <p class="note" style="margin-top:6px">注：4.3 与 4.4 是两套并存的知识库——前者落 MySQL、供前台浏览与后台管理；后者读静态文件、供 AI 检索（RAG）。两者当前不互通，详见问题 P1-2。</p>
+
+    <h3>4.5 情绪日记（3）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/emotion-diary</td><td><span class="auth a-login">登录</span></td><td>新增本人日记（评分/主导情绪/诱因/睡眠/压力）</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/emotion-diary/admin/page</td><td><span class="auth a-warn">缺鉴权</span></td><td>全站日记分页（含正文）——未校验管理员，见 P0-1</td></tr>
+        <tr><td><span class="pill p-del">DEL</span></td><td class="mono">/api/emotion-diary/admin/{id}</td><td><span class="auth a-warn">缺鉴权</span></td><td>按 id 删除任意日记——未校验归属/管理员，见 P0-1</td></tr>
+      </tbody></table></div>
+
+    <h3>4.6 文件上传（1）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/file/upload</td><td><span class="auth a-pub">公开</span></td><td>图片上传，限 image/*、5MB，UUID 重命名按 yyyy/MM 分目录（匿名可传，见 P2-3）</td></tr>
+      </tbody></table></div>
+
+    <h3>4.7 心理资源与预约（10）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/counseling/resources</td><td><span class="auth a-pub">公开</span></td><td>前台浏览「启用」心理资源</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/counseling/resources/admin/list</td><td><span class="auth a-admin">管理员</span></td><td>资源管理列表（keyword）</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/counseling/resources</td><td><span class="auth a-admin">管理员</span></td><td>新建资源</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/counseling/resources/{id}</td><td><span class="auth a-admin">管理员</span></td><td>更新资源</td></tr>
+        <tr><td><span class="pill p-del">DEL</span></td><td class="mono">/api/counseling/resources/{id}</td><td><span class="auth a-admin">管理员</span></td><td>删除资源</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/counseling/appointments</td><td><span class="auth a-login">登录</span></td><td>学生提交预约申请</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/counseling/appointments/my</td><td><span class="auth a-login">登录</span></td><td>我的预约列表</td></tr>
+        <tr><td><span class="pill p-del">DEL</span></td><td class="mono">/api/counseling/appointments/{id}</td><td><span class="auth a-login">登录+归属</span></td><td>取消本人预约</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/counseling/appointments/admin/page</td><td><span class="auth a-admin">管理员</span></td><td>预约分页（状态 / 关键词）</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/counseling/appointments/{id}/status</td><td><span class="auth a-admin">管理员</span></td><td>确认 / 完成 / 取消流转</td></tr>
+      </tbody></table></div>
+
+    <h3>4.8 主题成长计划（8）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/growth-plan/page</td><td><span class="auth a-pub">公开</span></td><td>计划分页（非管理员仅已发布，附带我的进度）</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/growth-plan/{id}</td><td><span class="auth a-pub">公开</span></td><td>计划详情</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/growth-plan/my</td><td><span class="auth a-login">登录</span></td><td>我的计划与进度（未登录返回空）</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/growth-plan/{id}/progress</td><td><span class="auth a-login">登录</span></td><td>更新本人进度 0-100</td></tr>
+        <tr><td><span class="pill p-post">POST</span></td><td class="mono">/api/growth-plan</td><td><span class="auth a-admin">管理员</span></td><td>新建计划</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/growth-plan/{id}</td><td><span class="auth a-admin">管理员</span></td><td>更新计划</td></tr>
+        <tr><td><span class="pill p-put">PUT</span></td><td class="mono">/api/growth-plan/{id}/status</td><td><span class="auth a-admin">管理员</span></td><td>发布 / 下线</td></tr>
+        <tr><td><span class="pill p-del">DEL</span></td><td class="mono">/api/growth-plan/{id}</td><td><span class="auth a-admin">管理员</span></td><td>删除计划</td></tr>
+      </tbody></table></div>
+
+    <h3>4.9 数据分析（2）</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>方法</th><th>路径</th><th>权限</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/data-analytics/overview</td><td><span class="auth a-warn">缺鉴权</span></td><td>运营聚合概览（纯统计数字，无原文），未校验管理员，见 P1-3</td></tr>
+        <tr><td><span class="pill p-get">GET</span></td><td class="mono">/api/data-analytics/campus-report</td><td><span class="auth a-warn">缺鉴权</span></td><td>匿名聚合校园报告（无个人身份信息）</td></tr>
+      </tbody></table></div>
+
+    <p class="note" style="margin-top:10px">合计：公开 13 · 管理员 14 · 普通登录 14 · 缺管理员校验 4 ＝ 45。全局未使用 @PreAuthorize 等方法级注解，授权完全依赖 SecurityConfig 的 URL 白名单 + Controller 内手写 UserContext.isAdmin()。</p>
+  </div>
+
+  <!-- 5 数据模型 -->
+  <div class="card">
+    <h2><span class="no">5</span>数据模型（MySQL · 10 张表）</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>#</th><th>表名</th><th>归属</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="mono">user</td><td>基础</td><td>用户账号、角色(user_type 1/2)、状态、资料</td></tr>
+        <tr><td>2</td><td class="mono">consultation_session</td><td>AI 对话</td><td>咨询会话、标题、最近情绪分析 JSON</td></tr>
+        <tr><td>3</td><td class="mono">consultation_message</td><td>AI 对话</td><td>会话消息（1 用户 / 2 AI）、情绪标签、AI 模型名</td></tr>
+        <tr><td>4</td><td class="mono">knowledge_category</td><td>知识库</td><td>文章分类（MySQL 文章库）</td></tr>
+        <tr><td>5</td><td class="mono">knowledge_article</td><td>知识库</td><td>文章正文（富文本）、标签、状态、阅读量、封面</td></tr>
+        <tr><td>6</td><td class="mono">emotion_diary</td><td>日记</td><td>情绪评分、主导情绪、诱因、睡眠、压力等级</td></tr>
+        <tr><td>7</td><td class="mono">counseling_resource</td><td>P2</td><td>心理资源（校内/热线/本地）</td></tr>
+        <tr><td>8</td><td class="mono">appointment_request</td><td>P2</td><td>预约申请与状态流转（0待处理/1确认/2取消/3完成）</td></tr>
+        <tr><td>9</td><td class="mono">growth_plan</td><td>P2</td><td>主题成长计划、审核人、周期、状态</td></tr>
+        <tr><td>10</td><td class="mono">growth_plan_progress</td><td>P2</td><td>用户计划进度（user+plan 唯一，0-100、完成标记）</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- 6 前端页面 -->
+  <div class="card">
+    <h2><span class="no">6</span>前端页面与路由（17 个 View）</h2>
+    <div class="two-col">
+      <div>
+        <h3 style="margin-top:0">用户端（FrontendLayout · 7）</h3>
+        <ul class="tight">
+          <li><span class="mono">/</span> home 首页</li>
+          <li><span class="mono">/consultation</span> AI 倾诉对话（SSE + 语音输入）</li>
+          <li><span class="mono">/emotion-diary</span> 情绪日记</li>
+          <li><span class="mono">/knowledge</span> 知识库列表</li>
+          <li><span class="mono">/knowledge/article/:id</span> 文章详情</li>
+          <li><span class="mono">/counseling</span> 心理资源与预约</li>
+          <li><span class="mono">/growth-plans</span> 成长计划</li>
+        </ul>
+        <h3>认证（AuthLayout · 2）</h3>
+        <ul class="tight">
+          <li><span class="mono">/auth/login</span> 登录 · <span class="mono">/auth/register</span> 注册</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-top:0">管理端（BackendLayout · 7）</h3>
+        <ul class="tight">
+          <li><span class="mono">/back/dashboard</span> 数据分析（ECharts）</li>
+          <li><span class="mono">/back/knowledge</span> 知识文章管理</li>
+          <li><span class="mono">/back/consultations</span> 咨询记录</li>
+          <li><span class="mono">/back/emotional</span> 情绪日志</li>
+          <li><span class="mono">/back/report</span> 校园报告</li>
+          <li><span class="mono">/back/appointments</span> 预约管理</li>
+          <li><span class="mono">/back/growth-plans</span> 成长计划管理</li>
+        </ul>
+        <h3>兜底（1）</h3>
+        <ul class="tight"><li>NotFound 404；路由前置守卫按 userType 区分前后台访问</li></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 问题与风险 -->
+  <div class="card">
+    <h2><span class="no">7</span>问题与风险清单（按优先级）</h2>
+
+    <div class="risk-item r0">
+      <div class="rt">P0-1 情绪日记管理接口越权（垂直 + 水平越权）<span class="st s-gap">建议加功能前修复</span></div>
+      <div class="rb">对照其他模块（Article / Counseling / GrowthPlan 的管理接口均显式调用 <span class="ev">UserContext.isAdmin()</span>），情绪日记的两个管理接口<b>没有任何管理员或归属校验</b>，而 SecurityConfig 对该路径仅要求「登录」。因此任意普通用户登录后即可：① 调 <span class="ev">GET /api/emotion-diary/admin/page</span> 分页读取全站所有用户日记正文；② 调 <span class="ev">DELETE /api/emotion-diary/admin/{id}</span> 删除任意他人日记。Service 层 adminPage 全表查询、delete 按 id 直删，也未兜底。</div>
+      <div class="fix">修复：在 EmotionDiaryController 的 adminPage / delete 中补 requireAdmin()（与其他 Controller 一致），或上移为统一注解鉴权。改动量极小。</div>
+    </div>
+
+    <div class="risk-item r1">
+      <div class="rt">P1-2 AI 知识库与后台文章库「双源未打通」<span class="st s-part">影响 RAG 效果</span></div>
+      <div class="rb">AI 检索（@Tool MCP 工具 + buildKnowledgeContext）读取的是 classpath 静态文件 <span class="ev">resources/knowledge-base/articles.json</span>（实际仅 4 篇：基础认知/睡眠健康/亲子沟通/职场减压）；而后台「知识文章管理」CRUD 的是 MySQL <span class="ev">knowledge_article</span> 表。<b>管理员新发布的文章不会进入 AI 检索</b>，前台也并存两套知识库接口（/api/knowledge/** 读 JSON、/api/knowledge/article/** 读库）。这与 README「实时检索知识库、优先引用已发布文章」的描述存在落差。</div>
+      <div class="fix">建议：让 KnowledgeBaseService 改为从 MySQL 已发布文章检索（启动加载 + 发布/下线时刷新），或明确「静态库为演示、DB 库为业务」的定位并在文档说明，逐步收敛为一套。</div>
+    </div>
+
+    <div class="risk-item r1">
+      <div class="rt">P1-3 数据分析接口缺管理员校验 <span class="st s-part">中低风险</span></div>
+      <div class="rb"><span class="ev">/api/data-analytics/overview</span> 与 <span class="ev">campus-report</span> 只需登录即可访问。overview 返回全站总用户数、活跃数、平均情绪分、趋势等运营指标（不含个人原文，敏感度有限）；campus-report 本就是匿名聚合。建议仍收敛为管理员，避免普通用户看到全站运营口径。</div>
+    </div>
+
+    <div class="risk-item r1">
+      <div class="rt">P1-4 V1 已实现的部分安全 / 合规 / 增强能力在 V2 重构后缺失 <span class="st s-part">能力回退</span></div>
+      <div class="rb">对照 docs/技术方案.md、旧看板与 v1 分支，下列 V1 能力在当前 main 的表与接口中已不存在：首次同意门(user_consent)、三重风险识别与风险事件(risk_event)、危机资源(crisis_resource)、对话帮助度反馈(chat_feedback)、审计日志(audit_log)、文章收藏(article_favorite)、自助练习库(exercise*)、提示词/模型/规则版本化(system_config_version)、用户侧日记自查/编辑/删除/趋势、个人数据导出；SSE 也仅有 message/done/error，缺少技术方案要求的 risk/blocked 结构化安全事件。</div>
+      <div class="fix">这是 V2「重写而非迁移」的结果，不影响 V2 已声明功能，但涉及心理健康产品的安全合规底座（风险识别、危机卡、审计）建议评估是否补回。</div>
+    </div>
+
+    <div class="risk-item r2">
+      <div class="rt">P2-5 进度 / 技术文档滞后于代码 <span class="st s-todo">文档</span></div>
+      <div class="rb"><span class="ev">docs/实施进度看板.html</span> 仍标注 P2「未开始」、标题为 V1 MVP；<span class="ev">docs/技术方案.md</span> 为 V1 版本（仍写 GET stream、硅基流动、Redis，与现状 POST stream、DeepSeek、无 Redis 不符）。本报告即用于校准现状，后续可据此更新看板。</div>
+    </div>
+
+    <div class="risk-item r2">
+      <div class="rt">P2-6 工程规范与配置类小项 <span class="st s-todo">建议</span></div>
+      <div class="rb">
+        <ul class="tight">
+          <li>配置明文：<span class="ev">application.yml</span> 内数据库密码 123456、JWT secret 硬编码，建议改环境变量（AI Key 已正确走 AI_API_KEY）。</li>
+          <li>匿名上传：<span class="ev">/api/file/upload</span> 在公开白名单，未登录可上传图片（已限 image/* 与 5MB），建议改为登录后可用。</li>
+          <li>命名拼写：包 aispingboot、GlobarExceptionHandler、JwtAuthticationFilter 等拼写问题，不影响运行，重构时可统一。</li>
+          <li>遗留样例：Test.java（/api/test）、前端 HelloWorld.vue 可清理。</li>
+          <li>前端包体：echarts / element / editor 三个 vendor 均超 800KB–1.1MB，演示可接受，上线可按需加载优化。</li>
+          <li>模型名：配置为 deepseek-v4-pro，接入前确认与所用端点的真实模型 ID 一致。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 迭代建议 -->
+  <div class="card">
+    <h2><span class="no">8</span>添加新功能前的就绪评估与建议</h2>
+    <div class="flow">
+      <span class="node">① 修 P0-1 越权（约 10 行）</span><span class="arr">→</span>
+      <span class="node">② 决定知识库是否并轨</span><span class="arr">→</span>
+      <span class="node">③ 新功能按现有分层扩展</span><span class="arr">→</span>
+      <span class="node">④ 补最小接口测试</span>
+    </div>
+    <h3>为什么现在可以加功能</h3>
+    <ul class="tight">
+      <li>前后端均可一次构建通过，分层（controller / service / mapper / entity / dto / config）清晰，新增模块有 P2 三个完整范例可直接仿照。</li>
+      <li>统一 Result 返回体、全局异常、JWT、UserContext、MyBatis-Plus 分页等基础设施齐备，新增接口成本低。</li>
+      <li>数据表脚本集中在 schema.sql、种子数据由 DataInitializer 启动写入，新增表 / 种子的路径明确。</li>
+    </ul>
+    <h3>新功能落地建议遵循的约定（保持与现有代码一致）</h3>
+    <ul class="tight">
+      <li>后端：Controller 只做参数与权限，业务进 Service；管理端接口务必显式 <span class="mono">UserContext.isAdmin()</span>；用户资源从 JWT 取 userId 并校验归属，不信任前端传参。</li>
+      <li>DTO 分 command / response；入参加 @Valid；返回统一 Result&lt;T&gt;；异常抛 BusinessException 由全局处理器兜底。</li>
+      <li>前端：用户端 API 放 api/frontend.js、管理端放 api/admin.js；页面按 views 现有布局与路由守卫规则接入。</li>
+      <li>每完成一个功能：更新对应 README / 文档，并按仓库约定提交 Git commit、同步远程。</li>
+    </ul>
+    <p class="note" style="margin-top:8px">你可以直接告诉我想加的新功能，我会按上述现有架构落地；如需要，我也可以先把 P0-1 越权修复和知识库并轨方案做掉。</p>
+  </div>
+
+  <footer>数据口径：本报告由对 backend 源码（11 Controller / 11 Service / 10 Mapper / 10 表）、frontend 源码（17 View / 路由 / API 封装）、构建过程与 Git 历史的实际核查生成 · 报告日期 2026-09-04 · 心理支持功能不构成医疗建议</footer>
+</div>
+</body>
+</html>

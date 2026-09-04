@@ -86,6 +86,7 @@ npm run dev
 - [前端应用文档（frontend）](frontend/README.md)
 - [产品设计文档](docs/产品设计文档.md)
 - [技术方案](docs/技术方案.md)
+- [**项目进度报告（V2.0 现状核查：功能 / 45 个接口 / 风险清单）**](docs/项目进度报告.html)
 - [实施进度看板](docs/实施进度看板.html)
 
 ## License
