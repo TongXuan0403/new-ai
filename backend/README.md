@@ -17,7 +17,7 @@
 | --- | --- |
 | 用户认证 | 注册 / 登录 / 登出 / 当前用户；JWT 无状态鉴权；`user_type` 区分普通用户（1）与管理员（2） |
 | AI 心理对话 | Spring AI `ChatClient` + 会话窗口记忆（最近 30 条），DeepSeek 兼容接口，**SSE 流式**返回；无 Key 或异常时本地兜底回复 |
-| 知识库 RAG | 知识库通过 `@Tool` 暴露为 **MCP 工具**（`searchKnowledgeArticles` / `getKnowledgeArticleById` / `listKnowledgeCategories`），对话中自主检索增强回答 |
+| 知识库 RAG | 知识库数据源为 MySQL `knowledge_article` **已发布文章**（与后台「知识文章管理」打通：增删改 / 发布 / 下线后缓存自动失效、AI 立即生效）；通过 `@Tool` 暴露为 **MCP 工具**（`searchKnowledgeArticles` / `getKnowledgeArticleById` / `listKnowledgeCategories`），对话中自主检索增强回答 |
 | 情绪日记 | 用户记录情绪评分 / 主导情绪 / 诱因 / 压力等级；管理端分页查看与删除 |
 | 知识文章 | 分类树 + 文章分页（前台仅已发布、管理员全量）、富文本内容、封面上传、状态流转 |
 | 数据统计 | `/api/data-analytics/overview` 运营聚合概览 |
@@ -73,6 +73,8 @@ $env:JWT_SECRET='生产环境强密钥'
 mvn spring-boot:run
 ```
 
+> **密钥保护**：本地调试时也可直接在 `application.yml` 填写 API Key，但该文件已用 `git update-index --skip-worktree` 标记，**本地 Key 不会进入版本库 / 推送到远程**。
+
 ### 3. 启动
 
 ```bash
@@ -83,7 +85,7 @@ mvn spring-boot:run
 
 - 服务地址：<http://localhost:1236>
 - 种子账号：`admin` / `demo`，密码均为 `123456`（`admin` 为管理员，`demo` 为普通用户）
-- 知识库自动加载 `src/main/resources/knowledge-base/articles.json`
+- 知识库来自 MySQL `knowledge_article` 表（`status=1` 已发布文章）；旧静态知识库 `knowledge-base/articles.json` 会在启动时自动迁移入库（按标题幂等，分类自动创建）
 
 ## 项目结构
 
@@ -104,7 +106,7 @@ backend/
 │   └── util/                          # JWT 工具 / 用户上下文
 └── src/main/resources/
     ├── application.yml                # 配置
-    └── knowledge-base/articles.json   # 知识库数据（供 AI 检索）
+    └── knowledge-base/articles.json   # 旧静态知识（启动时自动迁移到 MySQL，仅作迁移源）
 ```
 
 ## API 概览
@@ -176,6 +178,7 @@ event: done      data: {}
 - **对话**：`ChatClient`（bean `open-ai`）使用 OpenAI 兼容接口接入 DeepSeek，启用 tool-calling，并挂载 `MessageChatMemoryAdvisor`（30 条窗口记忆）。
 - **MCP**：`KnowledgeMcpConfig` 通过 `MethodToolCallbackProvider` 将 `KnowledgeBaseService` 的 `@Tool` 方法注册为工具，模型可在对话中自主检索知识库。
 - **RAG 上下文**：发送给模型前，`PsychologicalSupportService` 会基于用户消息调用 `buildKnowledgeContext` 注入最相关的知识摘要作为系统上下文，并要求模型优先引用、不编造来源。
+- **数据实时性**：`KnowledgeBaseService` 以 MySQL `knowledge_article` 为唯一数据源并维护内存缓存；`ArticleService` 每次增删改 / 状态流转后调用 `invalidateCache()`，保证管理后台改动无需重启即可被 AI 检索到。
 
 ## 测试
 
@@ -184,6 +187,13 @@ mvn test
 ```
 
 单元 / 集成测试使用 H2 内存库，不影响本地 MySQL 数据。
+
+另提供人工回归脚本（需后端运行在 `localhost:1236`）：
+
+```bash
+python test-rag.py               # 真实 AI 对话，验证知识库参与回答
+python test-rag-upload-loop.py   # 后台新增文章 -> AI 知识库立即检索到（缓存失效）
+```
 
 ## License
 

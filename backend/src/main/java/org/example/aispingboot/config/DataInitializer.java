@@ -1,6 +1,8 @@
 package org.example.aispingboot.config;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Resource;
 import org.example.aispingboot.entity.Article;
 import org.example.aispingboot.entity.ArticleCategory;
@@ -11,13 +13,24 @@ import org.example.aispingboot.mapper.ArticleCategoryMapper;
 import org.example.aispingboot.mapper.ArticleMapper;
 import org.example.aispingboot.mapper.CounselingResourceMapper;
 import org.example.aispingboot.mapper.GrowthPlanMapper;
+import org.example.aispingboot.exception.BusinessException;
 import org.example.aispingboot.mapper.UserMapper;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,6 +42,9 @@ import java.util.Map;
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private UserMapper userMapper;
@@ -49,6 +65,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         initUsers();
         initCategoriesAndArticles();
+        migrateLegacyKnowledgeFromJson();
         initCounselingResources();
         initGrowthPlans();
     }
@@ -208,5 +225,135 @@ public class DataInitializer implements CommandLineRunner {
                 .updatedAt(LocalDateTime.now())
                 .build();
         growthPlanMapper.insert(plan);
+    }
+
+    /**
+     * 迁移旧静态知识库（classpath:knowledge-base/articles.json）到 MySQL：
+     * - 分类不存在时自动创建；
+     * - 文章按标题去重，幂等可重复执行；
+     * - 迁移后这些历史知识即可被 AI 检索与前台展示。
+     */
+    private void migrateLegacyKnowledgeFromJson() {
+        List<Map<String, Object>> legacy;
+        try {
+            legacy = readLegacyKnowledgeJson();
+        } catch (Exception e) {
+            // 旧知识库迁移失败不应阻塞启动，仅记录异常
+            System.err.println("[DataInitializer] 旧知识库迁移跳过: " + e.getMessage());
+            return;
+        }
+        if (legacy.isEmpty()) {
+            return;
+        }
+
+        Map<String, Long> categoryIds = new HashMap<>();
+        for (Map<String, Object> item : legacy) {
+            String title = str(item.get("title"));
+            if (!StringUtils.hasText(title)) {
+                continue;
+            }
+            // 幂等：标题已存在则跳过
+            if (articleMapper.selectCount(new LambdaQueryWrapper<Article>().eq(Article::getTitle, title)) > 0) {
+                continue;
+            }
+            String categoryName = str(item.get("category"));
+            Long categoryId = categoryIds.computeIfAbsent(categoryName, name -> getOrCreateCategory(name));
+            Article article = Article.builder()
+                    .categoryId(categoryId)
+                    .title(title)
+                    .summary(str(item.get("summary")))
+                    .content(str(item.get("content")))
+                    .coverImage(str(item.get("cover")))
+                    .tags(listToCsv(item.get("tags")))
+                    .status("published".equalsIgnoreCase(str(item.get("status"))) ? 1 : 0)
+                    .readCount(intValue(item.get("views")))
+                    .author(StringUtils.hasText(str(item.get("author"))) ? str(item.get("author")) : "admin")
+                    .publishedAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            articleMapper.insert(article);
+        }
+    }
+
+    private List<Map<String, Object>> readLegacyKnowledgeJson() throws IOException {
+        org.springframework.core.io.Resource resource = new ClassPathResource("knowledge-base/articles.json");
+        if (!resource.exists()) {
+            return new ArrayList<>();
+        }
+        StringBuilder sb = new StringBuilder();
+        try (InputStream in = resource.getInputStream();
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            int first = reader.read();
+            if (first != -1 && first != 0xFEFF) {
+                sb.append((char) first);
+            }
+            char[] buf = new char[8192];
+            int n;
+            while ((n = reader.read(buf)) != -1) {
+                sb.append(buf, 0, n);
+            }
+        }
+        if (sb.length() == 0) {
+            return new ArrayList<>();
+        }
+        return objectMapper.readValue(sb.toString(), new TypeReference<>() {
+        });
+    }
+
+    private Long getOrCreateCategory(String name) {
+        if (!StringUtils.hasText(name)) {
+            return 0L;
+        }
+        ArticleCategory exist = articleCategoryMapper.selectOne(
+                new LambdaQueryWrapper<ArticleCategory>().eq(ArticleCategory::getName, name).last("LIMIT 1"));
+        if (exist != null) {
+            return exist.getId();
+        }
+        ArticleCategory category = ArticleCategory.builder()
+                .name(name)
+                .sortNo(0)
+                .status(1)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        articleCategoryMapper.insert(category);
+        return category.getId();
+    }
+
+    private String str(Object value) {
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private String listToCsv(Object value) {
+        if (!(value instanceof List)) {
+            return "";
+        }
+        List<?> list = (List<?>) value;
+        StringBuilder sb = new StringBuilder();
+        for (Object o : list) {
+            String s = str(o).trim();
+            if (!s.isEmpty()) {
+                if (sb.length() > 0) {
+                    sb.append(",");
+                }
+                sb.append(s);
+            }
+        }
+        return sb.toString();
+    }
+
+    private int intValue(Object value) {
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value instanceof String) {
+            try {
+                return Integer.parseInt(((String) value).trim());
+            } catch (NumberFormatException ignored) {
+                return 0;
+            }
+        }
+        return 0;
     }
 }

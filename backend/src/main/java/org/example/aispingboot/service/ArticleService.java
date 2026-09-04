@@ -28,6 +28,9 @@ public class ArticleService {
     @Resource
     private ArticleCategoryMapper articleCategoryMapper;
 
+    @Resource
+    private KnowledgeBaseService knowledgeBaseService;
+
     /**
      * 分页查询文章
      *
@@ -118,6 +121,8 @@ public class ArticleService {
             article.setPublishedAt(LocalDateTime.now());
         }
         articleMapper.insert(article);
+        // 知识库缓存失效：新文章立即可被 AI 检索
+        knowledgeBaseService.invalidateCache();
         Map<Long, String> categoryNames = listCategoryNames();
         return toVO(article, categoryNames.get(article.getCategoryId()));
     }
@@ -144,6 +149,8 @@ public class ArticleService {
         }
         ub.updatedAt(LocalDateTime.now());
         articleMapper.updateById(ub.build());
+        // 知识库缓存失效：编辑后 AI 检索到最新内容
+        knowledgeBaseService.invalidateCache();
         return getDetail(id, false);
     }
 
@@ -157,6 +164,8 @@ public class ArticleService {
             ub.publishedAt(LocalDateTime.now());
         }
         articleMapper.updateById(ub.build());
+        // 知识库缓存失效：发布 / 下线后 AI 检索范围随之更新
+        knowledgeBaseService.invalidateCache();
     }
 
     public void delete(Long id) {
@@ -164,6 +173,8 @@ public class ArticleService {
             throw new BusinessException("文章不存在");
         }
         articleMapper.deleteById(id);
+        // 知识库缓存失效：删除后 AI 不再检索到该文章
+        knowledgeBaseService.invalidateCache();
     }
 
     public Map<Long, String> listCategoryNames() {

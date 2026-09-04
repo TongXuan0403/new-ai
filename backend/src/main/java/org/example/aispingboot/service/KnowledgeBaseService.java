@@ -1,60 +1,55 @@
 package org.example.aispingboot.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import jakarta.annotation.Resource;
 import org.example.aispingboot.DTO.response.KnowledgeArticleResponseDTO;
 import org.example.aispingboot.DTO.response.KnowledgePageResponseDTO;
+import org.example.aispingboot.entity.Article;
+import org.example.aispingboot.entity.ArticleCategory;
 import org.example.aispingboot.exception.BusinessException;
+import org.example.aispingboot.mapper.ArticleCategoryMapper;
+import org.example.aispingboot.mapper.ArticleMapper;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 知识库检索服务：供 AI 对话（MCP 工具）与 /api/knowledge 公开接口使用。
+ *
+ * 数据源：MySQL knowledge_article 表（status = 1 已发布），与后台「知识文章管理」完全打通。
+ * - 管理后台新增 / 编辑 / 发布 / 下线文章后，调用 {@link #invalidateCache()} 使内存缓存失效；
+ * - 缓存懒加载，首次访问或失效后重新查询，保证 AI 能实时检索到最新内容。
+ */
 @Service
 public class KnowledgeBaseService {
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int DEFAULT_RETRIEVAL_LIMIT = 3;
 
-    private final ObjectMapper objectMapper;
-    private final List<KnowledgeArticleResponseDTO> articles = new ArrayList<>();
+    @Resource
+    private ArticleMapper articleMapper;
 
-    public KnowledgeBaseService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    @Resource
+    private ArticleCategoryMapper articleCategoryMapper;
 
-    @PostConstruct
-    public void loadKnowledgeBase() {
-        Resource resource = new ClassPathResource("knowledge-base/articles.json");
-        if (!resource.exists()) {
-            throw new BusinessException("知识库资源文件不存在");
-        }
+    /** 内存缓存：已发布文章列表（懒加载，null 表示未加载或已失效） */
+    private volatile List<KnowledgeArticleResponseDTO> cache;
 
-        try (InputStream inputStream = resource.getInputStream()) {
-            List<KnowledgeArticleResponseDTO> loaded = objectMapper.readValue(
-                    inputStream,
-                    new TypeReference<>() {
-                    }
-            );
-            articles.clear();
-            articles.addAll(loaded);
-        } catch (IOException e) {
-            throw new BusinessException("加载知识库失败: " + e.getMessage());
-        }
-    }
+    private final Object cacheLock = new Object();
 
     @Tool(description = "按关键词和分类搜索知识库文章，返回文章摘要列表")
     public KnowledgePageResponseDTO searchKnowledgeArticles(
@@ -83,7 +78,7 @@ public class KnowledgeBaseService {
             throw new BusinessException("文章ID不能为空");
         }
 
-        return articles.stream()
+        return getArticles().stream()
                 .filter(item -> articleId.equals(item.getId()))
                 .findFirst()
                 .orElseThrow(() -> new BusinessException("知识内容不存在"));
@@ -91,7 +86,7 @@ public class KnowledgeBaseService {
 
     @Tool(description = "列出知识库分类")
     public List<String> listKnowledgeCategories() {
-        Set<String> categories = articles.stream()
+        Set<String> categories = getArticles().stream()
                 .map(KnowledgeArticleResponseDTO::getCategory)
                 .filter(StringUtils::hasText)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -152,11 +147,21 @@ public class KnowledgeBaseService {
         return findArticles(null, null);
     }
 
+    /**
+     * 使知识库缓存失效。文章新增 / 修改 / 发布 / 下线 / 删除后调用，
+     * 下次检索会从数据库重新加载，保证 AI 与前台读取最新知识。
+     */
+    public void invalidateCache() {
+        synchronized (cacheLock) {
+            cache = null;
+        }
+    }
+
     private List<KnowledgeArticleResponseDTO> findArticles(String keyword, String category) {
         String normalizedKeyword = normalize(keyword);
         String normalizedCategory = normalize(category);
 
-        return articles.stream()
+        return getArticles().stream()
                 .filter(item -> !StringUtils.hasText(item.getStatus()) || "published".equalsIgnoreCase(item.getStatus()))
                 .filter(item -> !StringUtils.hasText(normalizedCategory) || normalizedCategory.equals(normalize(item.getCategory())))
                 .sorted(Comparator
@@ -164,6 +169,61 @@ public class KnowledgeBaseService {
                         .reversed()
                         .thenComparing(this::updatedAtValue, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * 懒加载已发布文章列表；缓存为 null 时从 MySQL 全量加载。
+     */
+    private List<KnowledgeArticleResponseDTO> getArticles() {
+        List<KnowledgeArticleResponseDTO> local = cache;
+        if (local == null) {
+            synchronized (cacheLock) {
+                if (cache == null) {
+                    cache = loadPublishedArticles();
+                }
+                local = cache;
+            }
+        }
+        return local;
+    }
+
+    private List<KnowledgeArticleResponseDTO> loadPublishedArticles() {
+        List<Article> articles = articleMapper.selectList(
+                new LambdaQueryWrapper<Article>()
+                        .eq(Article::getStatus, 1)
+                        .orderByDesc(Article::getPublishedAt));
+        Map<Long, String> categoryNames = articleCategoryMapper.selectList(null).stream()
+                .collect(Collectors.toMap(ArticleCategory::getId, ArticleCategory::getName, (a, b) -> a));
+        return articles.stream()
+                .map(article -> toDTO(article, categoryNames.get(article.getCategoryId())))
+                .collect(Collectors.toList());
+    }
+
+    private KnowledgeArticleResponseDTO toDTO(Article article, String categoryName) {
+        KnowledgeArticleResponseDTO dto = new KnowledgeArticleResponseDTO();
+        dto.setId(String.valueOf(article.getId()));
+        dto.setTitle(article.getTitle());
+        dto.setCategory(categoryName);
+        dto.setSummary(article.getSummary());
+        dto.setContent(article.getContent());
+        dto.setCover(article.getCoverImage());
+        dto.setAuthor(article.getAuthor());
+        dto.setTags(article.getTags() == null ? new ArrayList<>()
+                : Arrays.stream(article.getTags().split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList()));
+        dto.setStatus(article.getStatus() != null && article.getStatus() == 1 ? "published" : "draft");
+        dto.setSource("心理健康知识库");
+        dto.setCreatedAt(toIsoString(article.getCreatedAt()));
+        dto.setUpdatedAt(toIsoString(article.getUpdatedAt()));
+        dto.setViews(article.getReadCount() != null ? article.getReadCount() : 0);
+        dto.setLikes(0);
+        return dto;
+    }
+
+    private String toIsoString(LocalDateTime time) {
+        return time == null ? null : time.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 
     private int relevanceScore(KnowledgeArticleResponseDTO article, String keyword, String category) {
